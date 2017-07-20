@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/Ass2.Minh/Ass2.Minh.iml" filepath="$PROJECT_DIR$/Ass2.Minh/Ass2.Minh.iml" />
       <module fileurl="file://$PROJECT_DIR$/COMP6231_Project.iml" filepath="$PROJECT_DIR$/COMP6231_Project.iml" />
     </modules>
   </component>

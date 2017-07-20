@@ -1,0 +1,13 @@
+module CORBA {
+    interface DCMS {
+        string createTRecord(in string managerID, in string firstName, in string lastName, in string address, in string phone, in string specialization, in string location);
+        string createSRecord(in string managerID, in string firstName, in string lastName, in string coursesRegistered, in string status);
+        string getRecordCounts(in string managerID);
+        boolean editRecord(in string managerID, in string recordID, in string fieldName, in string newValue);
+        boolean transferRecord(in string managerID, in string recordID, in string remoteCenterServerName);
+        string getRecordType(in string recordID);
+        void startUDPServer();
+        string printAllRecords();
+        string printRecord(in string managerID, in string recordID);
+    };
+};
