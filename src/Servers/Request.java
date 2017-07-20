@@ -1,6 +1,8 @@
 package Servers;
 
-public class Request {
+import java.io.Serializable;
+
+public class Request implements Serializable {
     private int sequenceNumber;
 
     private String functionName;
