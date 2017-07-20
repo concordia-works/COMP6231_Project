@@ -3,7 +3,7 @@ package Client;
 import Servers.Record;
 import Servers.StudentRecord;
 import Servers.TeacherRecord;
-import Utils.Config;
+import Utils.Configuration;
 import org.omg.CORBA.DCMS;
 import org.omg.CORBA.DCMSHelper;
 import org.omg.CORBA.ORB;
@@ -40,7 +40,7 @@ public class ManagerClient {
         orb = ORB.init(args, null);
 
         // Get object reference to the Naming Service
-        namingContextObj = orb.resolve_initial_references(Config.CORBA.NAME_SERVICE);
+        namingContextObj = orb.resolve_initial_references(Configuration.CORBA.NAME_SERVICE);
 
         // Narrow the NamingContext object reference to the proper type to be usable (like any CORBA object)
         namingContextRef = NamingContextExtHelper.narrow(namingContextObj);
@@ -53,7 +53,7 @@ public class ManagerClient {
 
             int input;
             do {
-                System.out.print(Config.MAIN_MENU);
+                System.out.print(Configuration.MAIN_MENU);
                 input = Integer.parseInt(sc.nextLine());
 
                 switch (input) {
@@ -75,7 +75,7 @@ public class ManagerClient {
     private static void singleThreadUI() throws Exception {
         System.out.print("Enter Manager ID: ");
         String managerID = sc.nextLine().toUpperCase();
-        Config.Server_ID serverID = Config.Server_ID.valueOf(managerID.substring(0, 3));
+        Configuration.Server_ID serverID = Configuration.Server_ID.valueOf(managerID.substring(0, 3));
         ManagerClient client = new ManagerClient(managerID);
         client.initiateLogger();
 
@@ -85,7 +85,7 @@ public class ManagerClient {
 
         int input;
         do {
-            System.out.print(Config.SINGLE_THREAD_MENU);
+            System.out.print(Configuration.SINGLE_THREAD_MENU);
             input = Integer.parseInt(sc.nextLine());
             switch (input) {
                 case 1:
@@ -112,7 +112,7 @@ public class ManagerClient {
                 case 8:
                     System.out.print("Enter Manager ID: ");
                     managerID = sc.nextLine().toUpperCase();
-                    serverID = Config.Server_ID.valueOf(managerID.substring(0, 3));
+                    serverID = Configuration.Server_ID.valueOf(managerID.substring(0, 3));
                     client = new ManagerClient(managerID);
                     client.initiateLogger();
 
@@ -131,7 +131,7 @@ public class ManagerClient {
     private static void multiThreadUI() throws Exception {
         int input;
         do {
-            System.out.print(Config.MULTI_THREAD_MENU);
+            System.out.print(Configuration.MULTI_THREAD_MENU);
             input = Integer.parseInt(sc.nextLine());
 
             switch (input) {
@@ -159,7 +159,7 @@ public class ManagerClient {
         new Thread(() -> {
             try {
                 String managerID = "MTL2111";
-                Config.Server_ID serverID = Config.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
+                Configuration.Server_ID serverID = Configuration.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
 
@@ -183,7 +183,7 @@ public class ManagerClient {
         new Thread(() -> {
             try {
                 String managerID = "MTL2112";
-                Config.Server_ID serverID = Config.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
+                Configuration.Server_ID serverID = Configuration.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
 
@@ -207,7 +207,7 @@ public class ManagerClient {
         new Thread(() -> {
             try {
                 String managerID = "MTL2113";
-                Config.Server_ID serverID = Config.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
+                Configuration.Server_ID serverID = Configuration.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
 
@@ -231,7 +231,7 @@ public class ManagerClient {
         new Thread(() -> {
             try {
                 String managerID = "MTL2114";
-                Config.Server_ID serverID = Config.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
+                Configuration.Server_ID serverID = Configuration.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
 
@@ -255,7 +255,7 @@ public class ManagerClient {
         new Thread(() -> {
             try {
                 String managerID = "MTL2115";
-                Config.Server_ID serverID = Config.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
+                Configuration.Server_ID serverID = Configuration.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
 
@@ -279,7 +279,7 @@ public class ManagerClient {
         new Thread(() -> {
             try {
                 String managerID = "MTL2116";
-                Config.Server_ID serverID = Config.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
+                Configuration.Server_ID serverID = Configuration.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
 
@@ -303,7 +303,7 @@ public class ManagerClient {
         new Thread(() -> {
             try {
                 String managerID = "MTL2117";
-                Config.Server_ID serverID = Config.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
+                Configuration.Server_ID serverID = Configuration.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
 
@@ -327,7 +327,7 @@ public class ManagerClient {
         new Thread(() -> {
             try {
                 String managerID = "MTL2118";
-                Config.Server_ID serverID = Config.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
+                Configuration.Server_ID serverID = Configuration.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
 
@@ -351,7 +351,7 @@ public class ManagerClient {
         new Thread(() -> {
             try {
                 String managerID = "MTL2119";
-                Config.Server_ID serverID = Config.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
+                Configuration.Server_ID serverID = Configuration.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
 
@@ -375,7 +375,7 @@ public class ManagerClient {
         new Thread(() -> {
             try {
                 String managerID = "MTL2110";
-                Config.Server_ID serverID = Config.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
+                Configuration.Server_ID serverID = Configuration.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
 
@@ -406,7 +406,7 @@ public class ManagerClient {
             try {
                 String managerID = "MTL3111";
                 String recordID = studentRecordID;
-                Config.Server_ID serverID = Config.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
+                Configuration.Server_ID serverID = Configuration.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
 
@@ -434,7 +434,7 @@ public class ManagerClient {
             try {
                 String managerID = "MTL3113";
                 String recordID = studentRecordID;
-                Config.Server_ID serverID = Config.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
+                Configuration.Server_ID serverID = Configuration.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
 
@@ -462,7 +462,7 @@ public class ManagerClient {
             try {
                 String managerID = "MTL3112";
                 String recordID = studentRecordID;
-                Config.Server_ID serverID = Config.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
+                Configuration.Server_ID serverID = Configuration.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
 
@@ -490,7 +490,7 @@ public class ManagerClient {
             try {
                 String managerID = "MTL3114";
                 String recordID = teacherRecordID;
-                Config.Server_ID serverID = Config.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
+                Configuration.Server_ID serverID = Configuration.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
 
@@ -518,7 +518,7 @@ public class ManagerClient {
             try {
                 String managerID = "MTL3117";
                 String recordID = teacherRecordID;
-                Config.Server_ID serverID = Config.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
+                Configuration.Server_ID serverID = Configuration.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
 
@@ -546,7 +546,7 @@ public class ManagerClient {
             try {
                 String managerID = "MTL3116";
                 String recordID = teacherRecordID;
-                Config.Server_ID serverID = Config.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
+                Configuration.Server_ID serverID = Configuration.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
 
@@ -574,7 +574,7 @@ public class ManagerClient {
             try {
                 String managerID = "MTL3115";
                 String recordID = teacherRecordID;
-                Config.Server_ID serverID = Config.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
+                Configuration.Server_ID serverID = Configuration.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
 
@@ -712,13 +712,13 @@ public class ManagerClient {
     private void getRecordCount(DCMS dcmsServer) {
         String result = dcmsServer.getRecordCounts(managerID);
         System.out.println(result);
-        LOGGER.info(String.format(Config.LOG_RECORDS_COUNT, managerID, result));
+        LOGGER.info(String.format(Configuration.LOG_RECORDS_COUNT, managerID, result));
     }
 
     private void initiateLogger() throws IOException {
         LOGGER = Logger.getLogger(managerID);
         LOGGER.setUseParentHandlers(false);
-        FileHandler fileHandler = new FileHandler(String.format(Config.LOG_MANAGER_FILENAME, managerID));
+        FileHandler fileHandler = new FileHandler(String.format(Configuration.LOG_MANAGER_FILENAME, managerID));
         LOGGER.addHandler(fileHandler);
         SimpleFormatter formatter = new SimpleFormatter();
         fileHandler.setFormatter(formatter);

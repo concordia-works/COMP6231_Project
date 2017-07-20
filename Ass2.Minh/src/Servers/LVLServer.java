@@ -1,6 +1,6 @@
 package Servers;
 
-import Utils.Config;
+import Utils.Configuration;
 import org.omg.CORBA.DCMS;
 import org.omg.CORBA.DCMSHelper;
 import org.omg.CORBA.ORB;
@@ -21,11 +21,11 @@ public class LVLServer {
             ORB orb = ORB.init(args, null);
 
             // Get reference to RootPOA and get POAManager
-            POA rootPOA = POAHelper.narrow(orb.resolve_initial_references(Config.CORBA.ROOT_POA));
+            POA rootPOA = POAHelper.narrow(orb.resolve_initial_references(Configuration.CORBA.ROOT_POA));
             rootPOA.the_POAManager().activate();
 
             // Create servant and register it with the ORB
-            CenterServer servant = new CenterServer(Config.Server_ID.LVL);
+            CenterServer servant = new CenterServer(Configuration.Server_ID.LVL);
             servant.setORB(orb);
 
             // Get object reference from the servant
@@ -33,16 +33,16 @@ public class LVLServer {
             DCMS dcmsServer = DCMSHelper.narrow(ref);
 
             // Get the root Naming Context
-            org.omg.CORBA.Object objRef = orb.resolve_initial_references(Config.CORBA.NAME_SERVICE);
+            org.omg.CORBA.Object objRef = orb.resolve_initial_references(Configuration.CORBA.NAME_SERVICE);
             NamingContextExt namingContextRef = NamingContextExtHelper.narrow(objRef);
 
             // Bind the object reference to the Naming Context
-            NameComponent path[] = namingContextRef.to_name(Config.Server_ID.LVL.name());
+            NameComponent path[] = namingContextRef.to_name(Configuration.Server_ID.LVL.name());
             namingContextRef.rebind(path, dcmsServer);
 
             // Run the server
             dcmsServer.startUDPServer();
-            System.out.println("Server " + Config.Server_ID.LVL.name() + " is running ...");
+            System.out.println("Server " + Configuration.Server_ID.LVL.name() + " is running ...");
             orb.run();
         } catch (Exception e) {
             System.out.println("ERROR: " + e);
