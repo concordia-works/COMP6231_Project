@@ -1,7 +1,7 @@
 package Servers;
 
-import Utils.Config;
-import Utils.Config.Server_ID;
+import Utils.Configuration;
+import Utils.Configuration.Server_ID;
 import org.omg.CORBA.DCMSPOA;
 import org.omg.CORBA.ORB;
 
@@ -52,8 +52,8 @@ public class CenterServer extends DCMSPOA {
                 break;
         }
         this.recordsCount = 0;
-        this.rmiPort = Config.getRMIPortByServerID(serverID);
-        this.udpPort = Config.getUDPPortByServerID(serverID);
+        this.rmiPort = Configuration.getRMIPortByServerID(serverID);
+        this.udpPort = Configuration.getUDPPortByServerID(serverID);
 
         initiateLogger();
 //        LOGGER.info("Server " + this.serverID + " starts");
@@ -87,7 +87,7 @@ public class CenterServer extends DCMSPOA {
          */
         String newRecordID;
         synchronized (lockID) {
-            newRecordID = String.format(Config.TEACHER_RECORD_FORMAT, recordID);
+            newRecordID = String.format(Configuration.TEACHER_RECORD_FORMAT, recordID);
             recordID += 3;
         }
 
@@ -113,7 +113,7 @@ public class CenterServer extends DCMSPOA {
             // Add the new record to the list
             recordsList.add(newRecord);
             recordsCount++;
-            LOGGER.info(String.format(Config.LOG_CREATE_TEACHER_RECORD, managerID, newRecordID, firstName, lastName, address, phone, specialization, location));
+            LOGGER.info(String.format(Configuration.LOG_CREATE_TEACHER_RECORD, managerID, newRecordID, firstName, lastName, address, phone, specialization, location));
         }
 
         return newRecordID;
@@ -129,12 +129,12 @@ public class CenterServer extends DCMSPOA {
          */
         String newRecordID;
         synchronized (lockID) {
-            newRecordID = String.format(Config.STUDENT_RECORD_FORMAT, recordID);
+            newRecordID = String.format(Configuration.STUDENT_RECORD_FORMAT, recordID);
             recordID += 3;
         }
 
         // Create new record
-        StudentRecord newRecord = new StudentRecord(newRecordID, firstName, lastName, coursesRegistered, status, new SimpleDateFormat(Config.DATE_TIME_FORMAT).format(new Date()));
+        StudentRecord newRecord = new StudentRecord(newRecordID, firstName, lastName, coursesRegistered, status, new SimpleDateFormat(Configuration.DATE_TIME_FORMAT).format(new Date()));
 
         /**
          * Lock the corresponding ArrayList to the LastName's initial character
@@ -155,7 +155,7 @@ public class CenterServer extends DCMSPOA {
             // Add the new record to the list
             recordsList.add(newRecord);
             recordsCount++;
-            LOGGER.info(String.format(Config.LOG_CREATE_STUDENT_RECORD, managerID, newRecordID, firstName, lastName, newRecord.getCoursesRegistered(), status));
+            LOGGER.info(String.format(Configuration.LOG_CREATE_STUDENT_RECORD, managerID, newRecordID, firstName, lastName, newRecord.getCoursesRegistered(), status));
         }
 
         return newRecordID;
@@ -168,9 +168,9 @@ public class CenterServer extends DCMSPOA {
             for (Server_ID id : Server_ID.values()) {
                 if (id != serverID) {
                     socket = new DatagramSocket();
-                    byte[] request = Config.FUNC_GET_RECORDS_NUMBER.getBytes();
-                    InetAddress host = InetAddress.getByName(Config.getHostnameByServerID(id));
-                    DatagramPacket sentPacket = new DatagramPacket(request, Config.FUNC_GET_RECORDS_NUMBER.length(), host, Config.getUDPPortByServerID(id));
+                    byte[] request = Configuration.FUNC_GET_RECORDS_NUMBER.getBytes();
+                    InetAddress host = InetAddress.getByName(Configuration.getHostnameByServerID(id));
+                    DatagramPacket sentPacket = new DatagramPacket(request, Configuration.FUNC_GET_RECORDS_NUMBER.length(), host, Configuration.getUDPPortByServerID(id));
                     socket.send(sentPacket);
 
                     byte[] response = new byte[1000];
@@ -180,7 +180,7 @@ public class CenterServer extends DCMSPOA {
                 }
             }
 
-            LOGGER.info(String.format(Config.LOG_RECORDS_COUNT, managerID, result));
+            LOGGER.info(String.format(Configuration.LOG_RECORDS_COUNT, managerID, result));
         } catch (Exception e) {
             LOGGER.severe(e.getMessage());
             System.out.println(e.getMessage());
@@ -229,7 +229,7 @@ public class CenterServer extends DCMSPOA {
                                     if (field == StudentRecord.Mutable_Fields.status) {
                                         Field statusDateField = c.getDeclaredField(StudentRecord.Mutable_Fields.statusDate.name());
                                         statusDateField.setAccessible(true);
-                                        statusDateField.set(studentRecord, new SimpleDateFormat(Config.DATE_TIME_FORMAT).format(new Date()));
+                                        statusDateField.set(studentRecord, new SimpleDateFormat(Configuration.DATE_TIME_FORMAT).format(new Date()));
                                         statusDateField.setAccessible(false);
                                     }
                                 } catch (Exception e) {
@@ -240,12 +240,12 @@ public class CenterServer extends DCMSPOA {
                             }
                         }
                         // Logging
-                        LOGGER.info(String.format(Config.LOG_MODIFIED_RECORD_SUCCESS, managerID, recordID, fieldName, newValue));
+                        LOGGER.info(String.format(Configuration.LOG_MODIFIED_RECORD_SUCCESS, managerID, recordID, fieldName, newValue));
                         return true;
                     }
                 }
             }
-            LOGGER.info(String.format(Config.LOG_MODIFIED_RECORD_FAILED, managerID, recordID, fieldName, newValue));
+            LOGGER.info(String.format(Configuration.LOG_MODIFIED_RECORD_FAILED, managerID, recordID, fieldName, newValue));
             return false;
         }
     }
@@ -265,20 +265,20 @@ public class CenterServer extends DCMSPOA {
                             try {
                                 socket = new DatagramSocket();
                                 String requestContent = "";
-                                Server_ID serverID = Config.Server_ID.valueOf(remoteCenterServerName);
-                                InetAddress host = InetAddress.getByName(Config.getHostnameByServerID(serverID));
+                                Server_ID serverID = Configuration.Server_ID.valueOf(remoteCenterServerName);
+                                InetAddress host = InetAddress.getByName(Configuration.getHostnameByServerID(serverID));
                                 if (recordFound.getRecordType() == Record.Record_Type.TEACHER) {
                                     TeacherRecord teacherRecord = (TeacherRecord) recordFound;
-                                    requestContent = Config.FUNC_TRANSFER_TEACHER_RECORD + "|" + managerID + "|" + recordID + "|" + teacherRecord.getFirstName() + "|" + teacherRecord.getLastName()
+                                    requestContent = Configuration.FUNC_TRANSFER_TEACHER_RECORD + "|" + managerID + "|" + recordID + "|" + teacherRecord.getFirstName() + "|" + teacherRecord.getLastName()
                                             + "|" + teacherRecord.getAddress() + "|" + teacherRecord.getPhone() + "|" + teacherRecord.getSpecialization() + "|" + teacherRecord.getLocation();
                                 } else {
                                     StudentRecord studentRecord = (StudentRecord) recordFound;
-                                    requestContent += Config.FUNC_TRANSFER_STUDENT_RECORD + "|" + managerID + "|" + recordID + "|" + studentRecord.getFirstName() + "|" + studentRecord.getLastName()
+                                    requestContent += Configuration.FUNC_TRANSFER_STUDENT_RECORD + "|" + managerID + "|" + recordID + "|" + studentRecord.getFirstName() + "|" + studentRecord.getLastName()
                                             + "|" + studentRecord.getCoursesRegistered() + "|" + studentRecord.getStatus() + "|" + studentRecord.getStatusDate();
                                 }
 
                                 byte[] request = requestContent.getBytes();
-                                DatagramPacket sentPacket = new DatagramPacket(request, requestContent.length(), host, Config.getUDPPortByServerID(serverID));
+                                DatagramPacket sentPacket = new DatagramPacket(request, requestContent.length(), host, Configuration.getUDPPortByServerID(serverID));
                                 socket.send(sentPacket);
 
                                 byte[] response = new byte[1000];
@@ -298,23 +298,23 @@ public class CenterServer extends DCMSPOA {
                                 synchronized (lockCount) {
                                     recordsList.remove(recordFound);
                                     recordsCount--;
-                                    LOGGER.info(String.format(Config.LOG_TRANSFER_RECORD_SUCCESS, managerID, recordID, remoteCenterServerName));
+                                    LOGGER.info(String.format(Configuration.LOG_TRANSFER_RECORD_SUCCESS, managerID, recordID, remoteCenterServerName));
                                 }
                                 return true;
                             }
                             else {
-                                LOGGER.info(String.format(Config.LOG_TRANSFER_RECORD_FAIL, managerID, recordID, remoteCenterServerName));
+                                LOGGER.info(String.format(Configuration.LOG_TRANSFER_RECORD_FAIL, managerID, recordID, remoteCenterServerName));
                                 return false;
                             }
                         }
                     }
                 }
-                LOGGER.info(String.format(Config.LOG_TRANSFER_RECORD_FAIL, managerID, recordID, remoteCenterServerName));
+                LOGGER.info(String.format(Configuration.LOG_TRANSFER_RECORD_FAIL, managerID, recordID, remoteCenterServerName));
                 return false;
             }
         }
         else {
-            LOGGER.info(String.format(Config.LOG_TRANSFER_RECORD_FAIL, managerID, recordID, remoteCenterServerName));
+            LOGGER.info(String.format(Configuration.LOG_TRANSFER_RECORD_FAIL, managerID, recordID, remoteCenterServerName));
             return false;
         }
     }
@@ -323,7 +323,7 @@ public class CenterServer extends DCMSPOA {
         DatagramSocket socket = null;
         try {
             socket = new DatagramSocket(this.udpPort);
-            LOGGER.info(String.format(Config.LOG_UDP_SERVER_START, this.udpPort));
+            LOGGER.info(String.format(Configuration.LOG_UDP_SERVER_START, this.udpPort));
 
             while (true) {
                 // Get the request
@@ -339,15 +339,15 @@ public class CenterServer extends DCMSPOA {
                 new Thread(() -> {
                     String replyStr = "-1";
                     String strRequest = new String(request.getData()).trim();
-                    String[] requestComponent = strRequest.split(Config.DELIMITER);
+                    String[] requestComponent = strRequest.split(Configuration.DELIMITER);
                     switch (requestComponent[0]) {
-                        case Config.FUNC_GET_RECORDS_NUMBER:
+                        case Configuration.FUNC_GET_RECORDS_NUMBER:
                             replyStr = Integer.toString(getRecordsNumber());
                             break;
-                        case Config.FUNC_TRANSFER_STUDENT_RECORD:
+                        case Configuration.FUNC_TRANSFER_STUDENT_RECORD:
                             replyStr = transferSRecord(requestComponent[1], requestComponent[2], requestComponent[3], requestComponent[4], requestComponent[5], requestComponent[6], requestComponent[7]);
                             break;
-                        case Config.FUNC_TRANSFER_TEACHER_RECORD:
+                        case Configuration.FUNC_TRANSFER_TEACHER_RECORD:
                             replyStr = transferTRecord(requestComponent[1], requestComponent[2], requestComponent[3], requestComponent[4], requestComponent[5], requestComponent[6], requestComponent[7], requestComponent[8]);
                             break;
                     }
@@ -356,7 +356,7 @@ public class CenterServer extends DCMSPOA {
                     DatagramPacket response = new DatagramPacket(replyStr.getBytes(), replyStr.length(), request.getAddress(), request.getPort());
                     try {
                         threadSocket.send(response);
-//                        LOGGER.info(String.format(Config.LOG_UDP_METHOD_RESPONSE, calledMethodName, replyStr));
+//                        LOGGER.info(String.format(Configuration.LOG_UDP_METHOD_RESPONSE, calledMethodName, replyStr));
                     } catch (IOException e) {
                         LOGGER.severe(e.getMessage());
                         e.printStackTrace();
@@ -369,7 +369,7 @@ public class CenterServer extends DCMSPOA {
         } finally {
             if (socket != null) {
                 socket.close();
-                LOGGER.info(String.format(Config.LOG_UDP_SERVER_STOP, this.udpPort));
+                LOGGER.info(String.format(Configuration.LOG_UDP_SERVER_STOP, this.udpPort));
             }
 
         }
@@ -396,11 +396,11 @@ public class CenterServer extends DCMSPOA {
                 for (int i = 0; i < recordsList.size(); i++) {
                     if (recordsList.get(i).getRecordType() == Record.Record_Type.TEACHER) {
                         TeacherRecord teacherRecord = (TeacherRecord) recordsList.get(i);
-                        result += i + " " + String.format(Config.PRINT_TEACHER_RECORD, teacherRecord.getRecordID(), teacherRecord.getFirstName(), teacherRecord.getLastName(), teacherRecord.getAddress(), teacherRecord.getPhone(), teacherRecord.getSpecialization(), teacherRecord.getLocation());
+                        result += i + " " + String.format(Configuration.PRINT_TEACHER_RECORD, teacherRecord.getRecordID(), teacherRecord.getFirstName(), teacherRecord.getLastName(), teacherRecord.getAddress(), teacherRecord.getPhone(), teacherRecord.getSpecialization(), teacherRecord.getLocation());
                         result += System.lineSeparator();
                     } else {
                         StudentRecord studentRecord = (StudentRecord) recordsList.get(i);
-                        result += i + " " + String.format(Config.PRINT_STUDENT_RECORD, studentRecord.getRecordID(), studentRecord.getFirstName(), studentRecord.getLastName(), studentRecord.getCoursesRegistered(), studentRecord.getStatus(), studentRecord.getStatusDate());
+                        result += i + " " + String.format(Configuration.PRINT_STUDENT_RECORD, studentRecord.getRecordID(), studentRecord.getFirstName(), studentRecord.getLastName(), studentRecord.getCoursesRegistered(), studentRecord.getStatus(), studentRecord.getStatusDate());
                         result += System.lineSeparator();
                     }
                 }
@@ -421,10 +421,10 @@ public class CenterServer extends DCMSPOA {
                     if (recordFound.getRecordID().compareTo(recordID) == 0) {
                         if (recordFound.getRecordType() == Record.Record_Type.TEACHER) {
                             TeacherRecord teacherRecord = (TeacherRecord) recordFound;
-                            return String.format(Config.PRINT_TEACHER_RECORD, recordID, teacherRecord.getFirstName(), teacherRecord.getLastName(), teacherRecord.getAddress(), teacherRecord.getPhone(), teacherRecord.getSpecialization(), teacherRecord.getLocation());
+                            return String.format(Configuration.PRINT_TEACHER_RECORD, recordID, teacherRecord.getFirstName(), teacherRecord.getLastName(), teacherRecord.getAddress(), teacherRecord.getPhone(), teacherRecord.getSpecialization(), teacherRecord.getLocation());
                         } else {
                             StudentRecord studentRecord = (StudentRecord) recordFound;
-                            return String.format(Config.PRINT_STUDENT_RECORD, recordID, studentRecord.getFirstName(), studentRecord.getLastName(), studentRecord.getCoursesRegistered(), studentRecord.getStatus(), studentRecord.getStatusDate());
+                            return String.format(Configuration.PRINT_STUDENT_RECORD, recordID, studentRecord.getFirstName(), studentRecord.getLastName(), studentRecord.getCoursesRegistered(), studentRecord.getStatus(), studentRecord.getStatusDate());
                         }
                     }
                 }
@@ -470,7 +470,7 @@ public class CenterServer extends DCMSPOA {
 //    }
 
     private void initiateLogger() throws IOException {
-        FileHandler fileHandler = new FileHandler(String.format(Config.LOG_SERVER_FILENAME, this.serverID));
+        FileHandler fileHandler = new FileHandler(String.format(Configuration.LOG_SERVER_FILENAME, this.serverID));
         LOGGER.addHandler(fileHandler);
         SimpleFormatter formatter = new SimpleFormatter();
         fileHandler.setFormatter(formatter);
@@ -513,7 +513,7 @@ public class CenterServer extends DCMSPOA {
             // Add the new record to the list
             recordsList.add(newRecord);
             recordsCount++;
-            LOGGER.info(String.format(Config.LOG_TRANSFER_TEACHER_RECORD, managerID, recordID, firstName, lastName, address, phone, specialization, location));
+            LOGGER.info(String.format(Configuration.LOG_TRANSFER_TEACHER_RECORD, managerID, recordID, firstName, lastName, address, phone, specialization, location));
         }
 
         return recordID;
@@ -546,7 +546,7 @@ public class CenterServer extends DCMSPOA {
             // Add the new record to the list
             recordsList.add(newRecord);
             recordsCount++;
-            LOGGER.info(String.format(Config.LOG_TRANSFER_STUDENT_RECORD, managerID, recordID, firstName, lastName, newRecord.getCoursesRegistered(), status, statusDate));
+            LOGGER.info(String.format(Configuration.LOG_TRANSFER_STUDENT_RECORD, managerID, recordID, firstName, lastName, newRecord.getCoursesRegistered(), status, statusDate));
         }
 
         return recordID;

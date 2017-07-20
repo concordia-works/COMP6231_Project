@@ -4,7 +4,7 @@ package Utils;
  * Created by quocminhvu on 2017-05-26.
  */
 
-public class Config {
+public class Configuration {
     public class CORBA {
         public static final String ROOT_POA = "RootPOA";
         public static final String NAME_SERVICE = "NameService";
