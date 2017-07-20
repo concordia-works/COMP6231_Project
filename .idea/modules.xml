@@ -2,7 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/Ass2.Kamal/Ass2.Kamal.iml" filepath="$PROJECT_DIR$/Ass2.Kamal/Ass2.Kamal.iml" />
       <module fileurl="file://$PROJECT_DIR$/Ass2.Minh/Ass2.Minh.iml" filepath="$PROJECT_DIR$/Ass2.Minh/Ass2.Minh.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Ass2.Rodolfo_Kenlo/Ass2.Rodolfo_Kenlo.iml" filepath="$PROJECT_DIR$/Ass2.Rodolfo_Kenlo/Ass2.Rodolfo_Kenlo.iml" />
       <module fileurl="file://$PROJECT_DIR$/COMP6231_Project.iml" filepath="$PROJECT_DIR$/COMP6231_Project.iml" />
     </modules>
   </component>
