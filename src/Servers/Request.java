@@ -1,108 +1,125 @@
 package Servers;
 
+import Utils.Config;
+
 import java.io.Serializable;
 
 public class Request implements Serializable {
     private int sequenceNumber;
-
-    private String functionName;
+    private Config.REQUEST.METHODS_NAME methodName;
     private String managerID;
-
     private String firstName;
     private String lastName;
     private String address;
     private String phone;
     private String specialization;
     private String location;
-
     private String coursesRegistered;
     private String status;
+    private String recordID;
+    private String fieldName;
+    private String newValue;
+    private String remoteCenterServerName;
 
-    public int getSequenceNumber() {
-        return sequenceNumber;
+    // For createTRecord
+    public Request(String managerID, Config.REQUEST.METHODS_NAME methodName, String firstName, String lastName, String address, String phone, String specialization, String location) {
+        this.managerID = managerID;
+        this.methodName = methodName;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.address = address;
+        this.phone = phone;
+        this.specialization = specialization;
+        this.location = location;
     }
 
-    public void setSequenceNumber(int sequenceNumber) {
-        this.sequenceNumber = sequenceNumber;
+    // For createTRecord
+    public Request(String managerID, Config.REQUEST.METHODS_NAME methodName, String firstName, String lastName, String coursesRegistered, String status) {
+        this.managerID = managerID;
+        this.methodName = methodName;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.coursesRegistered = coursesRegistered;
+        this.status = status;
     }
 
-    public String getFunctionName() {
-        return functionName;
+    // For getRecordsCount
+    public Request(String managerID, Config.REQUEST.METHODS_NAME methodName) {
+        this.managerID = managerID;
+        this.methodName = methodName;
     }
 
-    public void setFunctionName(String functionName) {
-        this.functionName = functionName;
+    // For editRecord
+    public Request(String managerID, Config.REQUEST.METHODS_NAME methodName, String recordID, String fieldName, String newValue) {
+        this.managerID = managerID;
+        this.methodName = methodName;
+        this.recordID = recordID;
+        this.fieldName = fieldName;
+        this.newValue = newValue;
+    }
+
+    // For transferRecord
+    public Request(String managerID, Config.REQUEST.METHODS_NAME methodName, String recordID, String remoteCenterServerName) {
+        this.managerID = managerID;
+        this.methodName = methodName;
+        this.recordID = recordID;
+        this.remoteCenterServerName = remoteCenterServerName;
+    }
+
+    // Getters
+    public Config.REQUEST.METHODS_NAME getMethodName() {
+        return methodName;
     }
 
     public String getManagerID() {
         return managerID;
     }
 
-    public void setManagerID(String managerID) {
-        this.managerID = managerID;
-    }
-
     public String getFirstName() {
         return firstName;
-    }
-
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
     }
 
     public String getLastName() {
         return lastName;
     }
 
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
-
     public String getAddress() {
         return address;
-    }
-
-    public void setAddress(String address) {
-        this.address = address;
     }
 
     public String getPhone() {
         return phone;
     }
 
-    public void setPhone(String phone) {
-        this.phone = phone;
-    }
-
     public String getSpecialization() {
         return specialization;
-    }
-
-    public void setSpecialization(String specialization) {
-        this.specialization = specialization;
     }
 
     public String getLocation() {
         return location;
     }
 
-    public void setLocation(String location) {
-        this.location = location;
-    }
-
     public String getCoursesRegistered() {
         return coursesRegistered;
-    }
-
-    public void setCoursesRegistered(String coursesRegistered) {
-        this.coursesRegistered = coursesRegistered;
     }
 
     public String getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
+    public String getRecordID() {
+        return recordID;
+    }
+
+    public String getFieldName() {
+        return fieldName;
+    }
+
+    public String getNewValue() {
+        return newValue;
+    }
+
+    public String getRemoteCenterServerName() {
+        return remoteCenterServerName;
     }
 }
