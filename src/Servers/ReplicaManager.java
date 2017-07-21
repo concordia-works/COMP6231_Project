@@ -15,6 +15,9 @@ import org.omg.CosNaming.NamingContextPackage.NotFound;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 
@@ -197,29 +200,35 @@ public class ReplicaManager implements Runnable {
         DatagramSocket socket = null;
         try {
             socket = new DatagramSocket(fromFrontEndPort);
-            byte[] buffer = new byte[1000];
 
             while (true) {
+                byte[] buffer = new byte[1000];
+
                 // Get the request
                 DatagramPacket requestPacket = new DatagramPacket(buffer, buffer.length);
                 socket.receive(requestPacket);
 
                 // Each request will be handled by a thread to improve performance
                 DatagramSocket finalSocket = socket;
+                DatagramPacket finalPacket = requestPacket;
                 ReplicaManager finalReplica = this;
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        // Rebuild the request object
-                        Request request = null;
+                        try {
+                            // Rebuild the request object
+                            Request request = deserialize(finalPacket.getData());
 
-                        // Handle the request
-                        executeRequest(request);
+                            // Handle the request
+                            executeRequest(request);
 
-                        // Send the result to backups & wait for acknowledgements
-                        broadcastResult();
+                            // Send the result to backups & wait for acknowledgements
+                            broadcastResult();
 
-                        // Response to FrontEnd
+                            // Response to FrontEnd
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
                 }).start();
             }
@@ -314,5 +323,11 @@ public class ReplicaManager implements Runnable {
 
         // Narrow the NamingContext object reference to the proper type to be usable (like any CORBA object)
         namingContextRef = NamingContextExtHelper.narrow(namingContextObj);
+    }
+
+    private Request deserialize(byte[] data) throws IOException, ClassNotFoundException {
+        ByteArrayInputStream in = new ByteArrayInputStream(data);
+        ObjectInputStream is = new ObjectInputStream(in);
+        return (Request) is.readObject();
     }
 }

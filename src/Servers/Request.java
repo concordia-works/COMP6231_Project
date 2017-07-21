@@ -2,6 +2,9 @@ package Servers;
 
 import Utils.Config;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
 public class Request implements Serializable {
@@ -67,6 +70,10 @@ public class Request implements Serializable {
     }
 
     // Getters
+    public int getSequenceNumber() {
+        return sequenceNumber;
+    }
+
     public Config.REQUEST.METHODS_NAME getMethodName() {
         return methodName;
     }
@@ -121,5 +128,12 @@ public class Request implements Serializable {
 
     public String getRemoteCenterServerName() {
         return remoteCenterServerName;
+    }
+
+    public byte[] serialize() throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ObjectOutputStream os = new ObjectOutputStream(out);
+        os.writeObject(this);
+        return out.toByteArray();
     }
 }
