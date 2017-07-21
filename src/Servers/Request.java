@@ -33,7 +33,7 @@ public class Request implements Serializable {
         this.location = location;
     }
 
-    // For createTRecord
+    // For createSRecord
     public Request(String managerID, Config.REQUEST.METHODS_NAME methodName, String firstName, String lastName, String coursesRegistered, String status) {
         this.managerID = managerID;
         this.methodName = methodName;

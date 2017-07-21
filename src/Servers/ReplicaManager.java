@@ -1,5 +1,6 @@
 package Servers;
 
+import Client.ManagerClient;
 import Utils.Config;
 import Utils.Configuration;
 import org.omg.CORBA.DCMS;
@@ -8,6 +9,9 @@ import org.omg.CORBA.ORB;
 import org.omg.CosNaming.NameComponent;
 import org.omg.CosNaming.NamingContextExt;
 import org.omg.CosNaming.NamingContextExtHelper;
+import org.omg.CosNaming.NamingContextPackage.CannotProceed;
+import org.omg.CosNaming.NamingContextPackage.InvalidName;
+import org.omg.CosNaming.NamingContextPackage.NotFound;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 
@@ -20,30 +24,40 @@ public class ReplicaManager implements Runnable {
     private int fromLeaderPort;
     private int heartBeatPort;
     private boolean isLeader;
-    
+    private ORB orb;
+    private org.omg.CORBA.Object namingContextObj;
+    private NamingContextExt namingContextRef;
+
     public ReplicaManager(Config.ARCHITECTURE.REPLICAS replicaManagerID) {
-        this.replicaManagerID = replicaManagerID;
-        switch (replicaManagerID) {
-            case MINH:
-                isLeader = true;
-                this.fromFrontEndPort = Config.UDP.PORT_FRONT_END_TO_LEADER;
-                this.fromLeaderPort = Config.UDP.PORT_LEADER_TO_BACKUPS;
-                this.heartBeatPort = Config.UDP.PORT_HEART_BEAT;
-                break;
-            case KAMAL:
-                isLeader = false;
-                this.fromFrontEndPort = 2 * Config.UDP.PORT_FRONT_END_TO_LEADER;
-                this.fromLeaderPort = 2 * Config.UDP.PORT_LEADER_TO_BACKUPS;
-                this.heartBeatPort = 2 * Config.UDP.PORT_HEART_BEAT;
-                break;
-            case KEN_RO:
-                isLeader = false;
-                this.fromFrontEndPort = 3 * Config.UDP.PORT_FRONT_END_TO_LEADER;
-                this.fromLeaderPort = 3 * Config.UDP.PORT_LEADER_TO_BACKUPS;
-                this.heartBeatPort = 3 * Config.UDP.PORT_HEART_BEAT;
-                break;
-            default:
-                break;
+        try {
+            this.replicaManagerID = replicaManagerID;
+            switch (replicaManagerID) {
+                case MINH:
+                    isLeader = true;
+                    this.fromFrontEndPort = Config.UDP.PORT_FRONT_END_TO_LEADER;
+                    this.fromLeaderPort = Config.UDP.PORT_LEADER_TO_BACKUPS;
+                    this.heartBeatPort = Config.UDP.PORT_HEART_BEAT;
+                    break;
+                case KAMAL:
+                    isLeader = false;
+                    this.fromFrontEndPort = 2 * Config.UDP.PORT_FRONT_END_TO_LEADER;
+                    this.fromLeaderPort = 2 * Config.UDP.PORT_LEADER_TO_BACKUPS;
+                    this.heartBeatPort = 2 * Config.UDP.PORT_HEART_BEAT;
+                    break;
+                case KEN_RO:
+                    isLeader = false;
+                    this.fromFrontEndPort = 3 * Config.UDP.PORT_FRONT_END_TO_LEADER;
+                    this.fromLeaderPort = 3 * Config.UDP.PORT_LEADER_TO_BACKUPS;
+                    this.heartBeatPort = 3 * Config.UDP.PORT_HEART_BEAT;
+                    break;
+                default:
+                    // Do nothing
+                    break;
+            }
+
+            prepareORB();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -61,6 +75,7 @@ public class ReplicaManager implements Runnable {
                 startKenroReplica();
                 break;
             default:
+                // Do nothing
                 break;
         }
 
@@ -71,8 +86,7 @@ public class ReplicaManager implements Runnable {
                     listenToFrontEnd();
                 }
             }).start();
-        }
-        else { // If this is backup, listen to Leader
+        } else { // If this is backup, listen to Leader
             new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -173,9 +187,11 @@ public class ReplicaManager implements Runnable {
         }
     }
 
-    private void startKamalReplica() {}
+    private void startKamalReplica() {
+    }
 
-    private void startKenroReplica() {}
+    private void startKenroReplica() {
+    }
 
     private void listenToFrontEnd() {
         DatagramSocket socket = null;
@@ -185,8 +201,8 @@ public class ReplicaManager implements Runnable {
 
             while (true) {
                 // Get the request
-                DatagramPacket request = new DatagramPacket(buffer, buffer.length);
-                socket.receive(request);
+                DatagramPacket requestPacket = new DatagramPacket(buffer, buffer.length);
+                socket.receive(requestPacket);
 
                 // Each request will be handled by a thread to improve performance
                 DatagramSocket finalSocket = socket;
@@ -194,8 +210,11 @@ public class ReplicaManager implements Runnable {
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
+                        // Rebuild the request object
+                        Request request = null;
+
                         // Handle the request
-                        executeRequest();
+                        executeRequest(request);
 
                         // Send the result to backups & wait for acknowledgements
                         broadcastResult();
@@ -244,9 +263,56 @@ public class ReplicaManager implements Runnable {
         }
     }
 
-    private void executeRequest() {}
+    private boolean executeRequest(Request request) {
+        try {
+            String managerID = request.getManagerID();
+            Configuration.Server_ID serverID = Configuration.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
 
-    private void updateResult() {}
+            // Pass the NameComponent to the NamingService to get the object, then narrow it to proper type
+            DCMS dcmsServer = DCMSHelper.narrow(namingContextRef.resolve_str(serverID.name()));
 
-    private void broadcastResult() {}
+            switch (request.getMethodName()) {
+                case createTRecord:
+                    dcmsServer.createTRecord(managerID, request.getFirstName(), request.getLastName(), request.getAddress(), request.getPhone(), request.getSpecialization(), request.getLocation());
+                    break;
+                case createSRecord:
+                    dcmsServer.createSRecord(managerID, request.getFirstName(), request.getLastName(), request.getCoursesRegistered(), request.getStatus());
+                    break;
+                case getRecordsCount:
+                    dcmsServer.getRecordCounts(managerID);
+                    break;
+                case editRecord:
+                    dcmsServer.editRecord(managerID, request.getRecordID(), request.getFieldName(), request.getNewValue());
+                    break;
+                case transferRecord:
+                    dcmsServer.transferRecord(managerID, request.getRecordID(), request.getRemoteCenterServerName());
+                    break;
+                default:
+                    // Do nothing
+                    break;
+            }
+            return true;
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            return false;
+        }
+    }
+
+    private void updateResult() {
+    }
+
+    private void broadcastResult() {
+        // Use FIFO class
+    }
+
+    private void prepareORB() throws Exception {
+        // Initiate client ORB
+        orb = ORB.init(Config.CORBA.ORB_PARAMETERS.split(" "), null);
+
+        // Get object reference to the Naming Service
+        namingContextObj = orb.resolve_initial_references(Configuration.CORBA.NAME_SERVICE);
+
+        // Narrow the NamingContext object reference to the proper type to be usable (like any CORBA object)
+        namingContextRef = NamingContextExtHelper.narrow(namingContextObj);
+    }
 }
