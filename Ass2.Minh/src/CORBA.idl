@@ -7,7 +7,7 @@ module CORBA {
         boolean transferRecord(in string managerID, in string recordID, in string remoteCenterServerName);
         string getRecordType(in string recordID);
         void startUDPServer();
-        string printAllRecords();
+        string printAllRecords(in string managerID);
         string printRecord(in string managerID, in string recordID);
     };
 };

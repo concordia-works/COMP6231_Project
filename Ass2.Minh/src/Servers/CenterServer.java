@@ -389,7 +389,7 @@ public class CenterServer extends DCMSPOA {
             return "";
     }
 
-    public String printAllRecords() {
+    public String printAllRecords(String managerID) {
         String result = "";
         synchronized (recordsMap) {
             for (ArrayList<Record> recordsList : this.recordsMap.values()) {
@@ -410,9 +410,6 @@ public class CenterServer extends DCMSPOA {
     }
 
     public String printRecord(String managerID, String recordID) {
-//        Record record = locateRecord(recordID);
-
-//        Map<Character, ArrayList<Record>> map = Collections.synchronizedMap(recordsMap);
         synchronized (recordsMap) {
             for (ArrayList<Record> recordsList : recordsMap.values()) {
                 Iterator<Record> iterator = recordsList.iterator();
@@ -444,49 +441,12 @@ public class CenterServer extends DCMSPOA {
         }
     }
 
-//    private Record locateRecord(String recordID) {
-//        Record recordFound = null;
-//        boolean isRecordFound = false;
-//        /**
-//         * Synchronize the whole HashMap to prevent other
-//         * threads from modifying it when it is being iterated
-//         */
-//        Map<Character, ArrayList<Record>> map = Collections.synchronizedMap(recordsMap);
-//        synchronized (map) {
-//            for (ArrayList<Record> recordsList : this.recordsMap.values()) {
-//                Iterator<Record> iterator = recordsList.iterator();
-//                while ((iterator.hasNext()) && (!isRecordFound)) {
-//                    recordFound = iterator.next();
-//                    if (recordFound.getRecordID().compareTo(recordID) == 0) {
-//                        isRecordFound = true;
-//                        break;
-//                    }
-//                }
-//            }
-//        }
-//        if (!isRecordFound)
-//            recordFound = null;
-//        return recordFound;
-//    }
-
     private void initiateLogger() throws IOException {
         FileHandler fileHandler = new FileHandler(String.format(Configuration.LOG_SERVER_FILENAME, this.serverID));
         LOGGER.addHandler(fileHandler);
         SimpleFormatter formatter = new SimpleFormatter();
         fileHandler.setFormatter(formatter);
     }
-
-//    private ArrayList<Record> getRecordsList(char lastNameInitial) {
-//        synchronized (recordsMap) {
-//            if (recordsMap.containsKey(lastNameInitial))
-//                return recordsMap.get(lastNameInitial);
-//            else {
-//                ArrayList<Record> recordsList = new ArrayList<>();
-//                recordsMap.put(lastNameInitial, recordsList);
-//                return recordsList;
-//            }
-//        }
-//    }
 
     private String transferTRecord(String managerID, String recordID, String firstName, String lastName, String address, String phone, String specialization, String location) {
         char lastNameInitial = Character.toUpperCase(lastName.charAt(0));
