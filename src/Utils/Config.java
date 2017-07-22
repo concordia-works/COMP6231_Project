@@ -3,6 +3,7 @@ package Utils;
 public class Config {
     public static class ARCHITECTURE {
         public enum REPLICAS {MINH, KAMAL, KEN_RO}
+        public enum SERVER_ID {MTL, LVL, DDO}
     }
 
     public static class REQUEST {
@@ -26,7 +27,9 @@ public class Config {
 
     public static class UDP {
         public static final int PORT_FRONT_END_TO_LEADER = 123;
+        public static final int PORT_LEADER_TO_FRONT_END = 456;
         public static final int PORT_LEADER_TO_BACKUPS = 234;
+        public static final int PORT_BACKUPS_TO_LEADER = 567;
         public static final int PORT_HEART_BEAT = 345;
     }
 }
