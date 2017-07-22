@@ -43,7 +43,7 @@ public class FIFO {
     // Get the current expected request sequence number
     public int getExpectedRequestNumber(String managerID) {
         synchronized (sequenceRequestLock) {
-            return sequenceRequestNumber.get(managerID);
+            return sequenceRequestNumber.getOrDefault(managerID, 0);
         }
     }
 
@@ -76,7 +76,7 @@ public class FIFO {
     }
 
     // Put a response into the queue
-    public void holdRResponse(String managerID, Response response) {
+    public void holdResponse(String managerID, Response response) {
         synchronized (holdbackResponseLock) {
             TreeMap<Integer, Response> holdbackQueue = holdbackResponse.get(managerID);
             holdbackQueue.put(response.getSequenceNumber(), response);
@@ -86,7 +86,7 @@ public class FIFO {
     // Get the current expected response sequence number
     public int getExpectedResponseNumber(String managerID) {
         synchronized (sequenceResponseLock) {
-            return sequenceResponseNumber.get(managerID);
+            return sequenceResponseNumber.getOrDefault(managerID, 0);
         }
     }
 
