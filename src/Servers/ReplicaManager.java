@@ -1,6 +1,5 @@
 package Servers;
 
-import Client.ManagerClient;
 import Utils.Config;
 import Utils.Configuration;
 import org.omg.CORBA.DCMS;
@@ -9,12 +8,12 @@ import org.omg.CORBA.ORB;
 import org.omg.CosNaming.NameComponent;
 import org.omg.CosNaming.NamingContextExt;
 import org.omg.CosNaming.NamingContextExtHelper;
-import org.omg.CosNaming.NamingContextPackage.CannotProceed;
-import org.omg.CosNaming.NamingContextPackage.InvalidName;
-import org.omg.CosNaming.NamingContextPackage.NotFound;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 
@@ -27,6 +26,7 @@ public class ReplicaManager implements Runnable {
     private ORB orb;
     private org.omg.CORBA.Object namingContextObj;
     private NamingContextExt namingContextRef;
+    private FIFO fifo;
 
     public ReplicaManager(Config.ARCHITECTURE.REPLICAS replicaManagerID) {
         try {
@@ -54,7 +54,7 @@ public class ReplicaManager implements Runnable {
                     // Do nothing
                     break;
             }
-
+            fifo = new FIFO();
             prepareORB();
         } catch (Exception e) {
             e.printStackTrace();
@@ -124,7 +124,7 @@ public class ReplicaManager implements Runnable {
             ORB orb = ORB.init(Config.CORBA.ORB_PARAMETERS.split(" "), null);
 
             // Get reference to RootPOA and get POAManager
-            POA rootPOA = POAHelper.narrow(orb.resolve_initial_references(Configuration.CORBA.ROOT_POA));
+            POA rootPOA = POAHelper.narrow(orb.resolve_initial_references(Config.CORBA.ROOT_POA));
             rootPOA.the_POAManager().activate();
 
             // Create servant and register it with the ORB
@@ -144,7 +144,7 @@ public class ReplicaManager implements Runnable {
             DCMS ddoDcmsServer = DCMSHelper.narrow(ddoRef);
 
             // Get the root Naming Context
-            org.omg.CORBA.Object objRef = orb.resolve_initial_references(Configuration.CORBA.NAME_SERVICE);
+            org.omg.CORBA.Object objRef = orb.resolve_initial_references(Config.CORBA.NAME_SERVICE);
             NamingContextExt namingContextRef = NamingContextExtHelper.narrow(objRef);
 
             // Bind the object reference to the Naming Context
@@ -194,115 +194,200 @@ public class ReplicaManager implements Runnable {
     }
 
     private void listenToFrontEnd() {
-        DatagramSocket socket = null;
+        DatagramSocket frontEndSocket = null;
         try {
-            socket = new DatagramSocket(fromFrontEndPort);
-            byte[] buffer = new byte[1000];
+            frontEndSocket = new DatagramSocket(fromFrontEndPort);
 
             while (true) {
+                byte[] buffer = new byte[1000];
+
                 // Get the request
                 DatagramPacket requestPacket = new DatagramPacket(buffer, buffer.length);
-                socket.receive(requestPacket);
+                frontEndSocket.receive(requestPacket);
 
                 // Each request will be handled by a thread to improve performance
-                DatagramSocket finalSocket = socket;
-                ReplicaManager finalReplica = this;
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        // Rebuild the request object
-                        Request request = null;
+                        try {
+                            // Rebuild the request object
+                            Request request = deserialize(requestPacket.getData());
+                            Response response = null;
+                            if (request.getSequenceNumber() == fifo.getExpectedRequestNumber(request.getManagerID())) { // This request is the one expected
+                                // Add the request to the queue, so it can be executed in the next step
+                                fifo.holdRequest(request.getManagerID(), request);
 
-                        // Handle the request
-                        executeRequest(request);
+                                // Execute this request and the continuous chain of requests after it hold in the queue
+                                while (true) {
+                                    Request currentRequest = fifo.popNextRequest(request.getManagerID());
 
-                        // Send the result to backups & wait for acknowledgements
-                        broadcastResult();
+                                    // Increase the expected sequence number by 1
+                                    fifo.generateRequestNumber(request.getManagerID());
 
-                        // Response to FrontEnd
+                                    // Handle the request
+                                    response = executeRequest(request);
+
+                                    /**
+                                     * Only broadcast requests if the leader executes the request successfully
+                                     * If the leader succeeds, the response to client will be successful
+                                     * As long as a RM can proceed the request, clients still get the successful result
+                                     */
+                                    // Send the result to backups & wait for acknowledgements
+                                    if (response.isSuccess())
+                                        broadcastAndGetAcknowledgement(requestPacket.getData());
+
+                                    // Response to FrontEnd
+                                    responseToFrontEnd(response);
+
+                                    // If the next request on hold doesn't have the expected sequence number, the loop will end
+                                    if (fifo.peekFirstRequestHoldNumber(request.getManagerID()) != fifo.getExpectedRequestNumber(request.getManagerID()))
+                                        break;
+                                }
+                            } else if (request.getSequenceNumber() > fifo.getExpectedRequestNumber(request.getManagerID())) { // There're other requests must come before this request
+                                // Save the request to the holdback queue
+                                fifo.holdRequest(request.getManagerID(), request);
+
+                                /**
+                                 * How to take care of the situation
+                                 * When the request is put to the queue
+                                 * But will never be execute until a new request is sent???
+                                 */
+                            } // Else the request is duplicated, ignore it
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
                 }).start();
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());
         } finally {
-            if (socket != null)
-                socket.close();
+            if (frontEndSocket != null)
+                frontEndSocket.close();
         }
     }
 
     private void listenToLeader() {
-        DatagramSocket socket = null;
+        DatagramSocket leaderSocket = null;
         try {
-            socket = new DatagramSocket(fromLeaderPort);
-            byte[] buffer = new byte[1000];
+            leaderSocket = new DatagramSocket(fromLeaderPort);
 
             while (true) {
+                byte[] buffer = new byte[1000];
+
                 // Get the request
-                DatagramPacket request = new DatagramPacket(buffer, buffer.length);
-                socket.receive(request);
+                DatagramPacket requestPacket = new DatagramPacket(buffer, buffer.length);
+                leaderSocket.receive(requestPacket);
 
                 // Each request will be handled by a thread to improve performance
-                DatagramSocket finalSocket = socket;
-                ReplicaManager finalReplica = this;
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        // Update the result to HashMap
-                        updateResult();
+                        try {
+                            // Send acknowledgement to the leader using FIFO's unicast
 
-                        // Send acknowledgement to leader
+                            // Rebuild the request object
+                            Request request = deserialize(requestPacket.getData());
+
+                            // Handle the request
+                            Response response = executeRequest(request);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
                 }).start();
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());
         } finally {
-            if (socket != null)
-                socket.close();
+            if (leaderSocket != null)
+                leaderSocket.close();
         }
     }
 
-    private boolean executeRequest(Request request) {
+    private Response executeRequest(Request request) {
+        Response response = null;
         try {
             String managerID = request.getManagerID();
             Configuration.Server_ID serverID = Configuration.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
 
             // Pass the NameComponent to the NamingService to get the object, then narrow it to proper type
             DCMS dcmsServer = DCMSHelper.narrow(namingContextRef.resolve_str(serverID.name()));
-
+            String result = "";
+            boolean isSuccess = false;
             switch (request.getMethodName()) {
-                case createTRecord:
-                    dcmsServer.createTRecord(managerID, request.getFirstName(), request.getLastName(), request.getAddress(), request.getPhone(), request.getSpecialization(), request.getLocation());
+                case createTRecord: {
+                    String createdRecordID = dcmsServer.createTRecord(managerID, request.getFirstName(), request.getLastName(), request.getAddress(), request.getPhone(), request.getSpecialization(), request.getLocation());
+                    if (createdRecordID.compareTo("") != 0) {
+                        result = String.format(Config.RESPONSE.CREATE_T_RECORD, createdRecordID);
+                        isSuccess = true;
+                    }
                     break;
-                case createSRecord:
-                    dcmsServer.createSRecord(managerID, request.getFirstName(), request.getLastName(), request.getCoursesRegistered(), request.getStatus());
+                }
+
+                case createSRecord: {
+                    String createdRecordID = dcmsServer.createSRecord(managerID, request.getFirstName(), request.getLastName(), request.getCoursesRegistered(), request.getStatus());
+                    if (createdRecordID.compareTo("") != 0) {
+                        result = String.format(Config.RESPONSE.CREATE_S_RECORD, createdRecordID);
+                        isSuccess = true;
+                    }
                     break;
-                case getRecordsCount:
-                    dcmsServer.getRecordCounts(managerID);
+                }
+
+                case getRecordsCount: {
+                    result = dcmsServer.getRecordCounts(managerID);
+                    if (result.compareTo("") != 0)
+                        isSuccess = true;
                     break;
-                case editRecord:
-                    dcmsServer.editRecord(managerID, request.getRecordID(), request.getFieldName(), request.getNewValue());
+                }
+
+                case editRecord: {
+                    isSuccess = dcmsServer.editRecord(managerID, request.getRecordID(), request.getFieldName(), request.getNewValue());
+                    if (isSuccess)
+                        result = String.format(Config.RESPONSE.EDIT_RECORD, request.getRecordID());
                     break;
-                case transferRecord:
-                    dcmsServer.transferRecord(managerID, request.getRecordID(), request.getRemoteCenterServerName());
+                }
+
+                case transferRecord: {
+                    isSuccess = dcmsServer.transferRecord(managerID, request.getRecordID(), request.getRemoteCenterServerName());
+                    if (isSuccess)
+                        result = String.format(Config.RESPONSE.TRANSFER_RECORD, request.getRecordID());
                     break;
-                default:
+                }
+
+                case printRecord: {
+                    result = dcmsServer.printRecord(managerID, request.getRecordID());
+                    if (result.compareTo("") != 0)
+                        isSuccess = true;
+                    break;
+                }
+
+                case printAllRecords: {
+                    result = dcmsServer.printAllRecords(managerID);
+                    if (result.compareTo("") != 0)
+                        isSuccess = true;
+                    break;
+                }
+
+                default: {
                     // Do nothing
                     break;
+                }
             }
-            return true;
+            response = new Response(request, isSuccess, result);
         } catch (Exception e) {
             System.out.println(e.getMessage());
-            return false;
         }
+        return response;
     }
 
     private void updateResult() {
     }
 
-    private void broadcastResult() {
-        // Use FIFO class
+    private void broadcastAndGetAcknowledgement(byte[] data) {
+        // Broadcast using FIFO multicast
+
+        // Listen to backups' acknowledgement
     }
 
     private void prepareORB() throws Exception {
@@ -310,9 +395,17 @@ public class ReplicaManager implements Runnable {
         orb = ORB.init(Config.CORBA.ORB_PARAMETERS.split(" "), null);
 
         // Get object reference to the Naming Service
-        namingContextObj = orb.resolve_initial_references(Configuration.CORBA.NAME_SERVICE);
+        namingContextObj = orb.resolve_initial_references(Config.CORBA.NAME_SERVICE);
 
         // Narrow the NamingContext object reference to the proper type to be usable (like any CORBA object)
         namingContextRef = NamingContextExtHelper.narrow(namingContextObj);
     }
+
+    private Request deserialize(byte[] data) throws IOException, ClassNotFoundException {
+        ByteArrayInputStream in = new ByteArrayInputStream(data);
+        ObjectInputStream is = new ObjectInputStream(in);
+        return (Request) is.readObject();
+    }
+
+    private void responseToFrontEnd(Response response) {}
 }
