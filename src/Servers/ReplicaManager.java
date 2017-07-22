@@ -20,7 +20,9 @@ import java.net.DatagramSocket;
 public class ReplicaManager implements Runnable {
     private Config.ARCHITECTURE.REPLICAS replicaManagerID;
     private int fromFrontEndPort;
+    private int toFrontEndPort;
     private int fromLeaderPort;
+    private int toLeaderPort;
     private int heartBeatPort;
     private boolean isLeader;
     private ORB orb;
@@ -35,19 +37,25 @@ public class ReplicaManager implements Runnable {
                 case MINH:
                     isLeader = true;
                     this.fromFrontEndPort = Config.UDP.PORT_FRONT_END_TO_LEADER;
+                    this.toFrontEndPort = Config.UDP.PORT_LEADER_TO_FRONT_END;
                     this.fromLeaderPort = Config.UDP.PORT_LEADER_TO_BACKUPS;
+                    this.toLeaderPort = Config.UDP.PORT_BACKUPS_TO_LEADER;
                     this.heartBeatPort = Config.UDP.PORT_HEART_BEAT;
                     break;
                 case KAMAL:
                     isLeader = false;
                     this.fromFrontEndPort = 2 * Config.UDP.PORT_FRONT_END_TO_LEADER;
+                    this.toFrontEndPort = 2 * Config.UDP.PORT_LEADER_TO_FRONT_END;
                     this.fromLeaderPort = 2 * Config.UDP.PORT_LEADER_TO_BACKUPS;
+                    this.toLeaderPort = 2 * Config.UDP.PORT_BACKUPS_TO_LEADER;
                     this.heartBeatPort = 2 * Config.UDP.PORT_HEART_BEAT;
                     break;
                 case KEN_RO:
                     isLeader = false;
                     this.fromFrontEndPort = 3 * Config.UDP.PORT_FRONT_END_TO_LEADER;
+                    this.toFrontEndPort = 3 * Config.UDP.PORT_LEADER_TO_FRONT_END;
                     this.fromLeaderPort = 3 * Config.UDP.PORT_LEADER_TO_BACKUPS;
+                    this.toLeaderPort = 3 * Config.UDP.PORT_BACKUPS_TO_LEADER;
                     this.heartBeatPort = 3 * Config.UDP.PORT_HEART_BEAT;
                     break;
                 default:
@@ -79,7 +87,7 @@ public class ReplicaManager implements Runnable {
                 break;
         }
 
-        if (isLeader) { // If this is leader, listen to FrontEnd
+        if (isLeader) { // If this is leader, listen to FrontEndImpl
             new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -194,16 +202,16 @@ public class ReplicaManager implements Runnable {
     }
 
     private void listenToFrontEnd() {
-        DatagramSocket frontEndSocket = null;
+        DatagramSocket fromFrontEndSocket = null;
         try {
-            frontEndSocket = new DatagramSocket(fromFrontEndPort);
+            fromFrontEndSocket = new DatagramSocket(fromFrontEndPort);
 
             while (true) {
                 byte[] buffer = new byte[1000];
 
                 // Get the request
                 DatagramPacket requestPacket = new DatagramPacket(buffer, buffer.length);
-                frontEndSocket.receive(requestPacket);
+                fromFrontEndSocket.receive(requestPacket);
 
                 // Each request will be handled by a thread to improve performance
                 new Thread(new Runnable() {
@@ -212,7 +220,7 @@ public class ReplicaManager implements Runnable {
                         try {
                             // Rebuild the request object
                             Request request = deserialize(requestPacket.getData());
-                            Response response = null;
+                            Response response;
                             if (request.getSequenceNumber() == fifo.getExpectedRequestNumber(request.getManagerID())) { // This request is the one expected
                                 // Add the request to the queue, so it can be executed in the next step
                                 fifo.holdRequest(request.getManagerID(), request);
@@ -231,12 +239,13 @@ public class ReplicaManager implements Runnable {
                                      * Only broadcast requests if the leader executes the request successfully
                                      * If the leader succeeds, the response to client will be successful
                                      * As long as a RM can proceed the request, clients still get the successful result
+                                     * Leader waits for acknowledgements from both backups then answers FrontEndImpl
                                      */
                                     // Send the result to backups & wait for acknowledgements
                                     if (response.isSuccess())
                                         broadcastAndGetAcknowledgement(requestPacket.getData());
 
-                                    // Response to FrontEnd
+                                    // Response to FrontEndImpl
                                     responseToFrontEnd(response);
 
                                     // If the next request on hold doesn't have the expected sequence number, the loop will end
@@ -262,8 +271,8 @@ public class ReplicaManager implements Runnable {
         } catch (Exception e) {
             System.out.println(e.getMessage());
         } finally {
-            if (frontEndSocket != null)
-                frontEndSocket.close();
+            if (fromFrontEndSocket != null)
+                fromFrontEndSocket.close();
         }
     }
 
@@ -284,13 +293,42 @@ public class ReplicaManager implements Runnable {
                     @Override
                     public void run() {
                         try {
-                            // Send acknowledgement to the leader using FIFO's unicast
+                            /**
+                             * To improve performance, backups will send acknowledgement to the leader
+                             * Right when it receive the message, don't need to wait for the processing
+                             */
+                            // Send acknowledgement to the leader
 
                             // Rebuild the request object
                             Request request = deserialize(requestPacket.getData());
+                            if (request.getSequenceNumber() == fifo.getExpectedRequestNumber(request.getManagerID())) { // This request is the one expected
+                                // Add the request to the queue, so it can be executed in the next step
+                                fifo.holdRequest(request.getManagerID(), request);
 
-                            // Handle the request
-                            Response response = executeRequest(request);
+                                // Execute this request and the continuous chain of requests after it hold in the queue
+                                while (true) {
+                                    Request currentRequest = fifo.popNextRequest(request.getManagerID());
+
+                                    // Increase the expected sequence number by 1
+                                    fifo.generateRequestNumber(request.getManagerID());
+
+                                    // Handle the request
+                                    executeRequest(request);
+
+                                    // If the next request on hold doesn't have the expected sequence number, the loop will end
+                                    if (fifo.peekFirstRequestHoldNumber(request.getManagerID()) != fifo.getExpectedRequestNumber(request.getManagerID()))
+                                        break;
+                                }
+                            } else if (request.getSequenceNumber() > fifo.getExpectedRequestNumber(request.getManagerID())) { // There're other requests must come before this request
+                                // Save the request to the holdback queue
+                                fifo.holdRequest(request.getManagerID(), request);
+
+                                /**
+                                 * How to take care of the situation
+                                 * When the request is put to the queue
+                                 * But will never be execute until a new request is sent???
+                                 */
+                            } // Else the request is duplicated, ignore it
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -309,7 +347,7 @@ public class ReplicaManager implements Runnable {
         Response response = null;
         try {
             String managerID = request.getManagerID();
-            Configuration.Server_ID serverID = Configuration.Server_ID.valueOf(managerID.substring(0, 3).toUpperCase());
+            Config.ARCHITECTURE.SERVER_ID serverID = Config.ARCHITECTURE.SERVER_ID.valueOf(managerID.substring(0, 3).toUpperCase());
 
             // Pass the NameComponent to the NamingService to get the object, then narrow it to proper type
             DCMS dcmsServer = DCMSHelper.narrow(namingContextRef.resolve_str(serverID.name()));
@@ -381,9 +419,6 @@ public class ReplicaManager implements Runnable {
         return response;
     }
 
-    private void updateResult() {
-    }
-
     private void broadcastAndGetAcknowledgement(byte[] data) {
         // Broadcast using FIFO multicast
 
@@ -407,5 +442,44 @@ public class ReplicaManager implements Runnable {
         return (Request) is.readObject();
     }
 
-    private void responseToFrontEnd(Response response) {}
+    private void responseToFrontEnd(Response response) {
+        DatagramSocket toFrontEndSocket = null;
+        try {
+            toFrontEndSocket = new DatagramSocket(toFrontEndPort);
+            String managerID = response.getManagerID();
+
+            if (response.getSequenceNumber() == fifo.getExpectedResponseNumber(managerID)) { // This response is the one expected
+                // Add the response to the queue, so it can be forwarded in the next step
+                fifo.holdResponse(managerID, response);
+
+                // Forward this response and the continuous chain of other responses after it hold in the queue
+                while (true) {
+                    Response currentResponse = fifo.popNextResponse(managerID);
+
+                    // Increase the expected sequence number by 1
+                    fifo.generateResponseNumber(managerID);
+
+                    // Forward the response using FIFO's reliable unicast
+
+                    // If the next response on hold doesn't have the expected sequence number, the loop will end
+                    if (fifo.peekFirstResponseHoldNumber(managerID) != fifo.getExpectedResponseNumber(managerID))
+                        break;
+                }
+            } else if (response.getSequenceNumber() > fifo.getExpectedResponseNumber(managerID)) { // There's other responses must come before this response
+                // Save the response to the holdback queue
+                fifo.holdResponse(managerID, response);
+
+                /**
+                 * How to take care of the situation
+                 * When the response is put to the queue
+                 * But will never be forwarded until a new response is sent???
+                 */
+            } // Else the response is duplicated, ignore it
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        } finally {
+            if (toFrontEndSocket != null)
+                toFrontEndSocket.close();
+        }
+    }
 }

@@ -35,7 +35,7 @@ public class Request implements Serializable {
         this.phone = phone;
         this.specialization = specialization;
         this.location = location;
-        this.fullInvocation = new String(String.format("%s(%s, %s, %s, %s, %s, %s, %s)", methodName, managerID, firstName, lastName, address, phone, specialization, location));
+        this.fullInvocation = String.format("%s(%s, %s, %s, %s, %s, %s, %s)", methodName, managerID, firstName, lastName, address, phone, specialization, location);
     }
 
     // For createSRecord
@@ -46,14 +46,14 @@ public class Request implements Serializable {
         this.lastName = lastName;
         this.coursesRegistered = coursesRegistered;
         this.status = status;
-        this.fullInvocation = new String(String.format("%s(%s, %s, %s, %s, %s)", methodName, managerID, firstName, lastName, coursesRegistered, status));
+        this.fullInvocation = String.format("%s(%s, %s, %s, %s, %s)", methodName, managerID, firstName, lastName, coursesRegistered, status);
     }
 
     // For getRecordsCount & printAllRecords
     public Request(String managerID, Config.REQUEST.METHODS_NAME methodName) {
         this.managerID = managerID;
         this.methodName = methodName;
-        this.fullInvocation = new String(String.format("%s(%s)", methodName, managerID));
+        this.fullInvocation = String.format("%s(%s)", methodName, managerID);
     }
 
     // For editRecord
@@ -63,7 +63,7 @@ public class Request implements Serializable {
         this.recordID = recordID;
         this.fieldName = fieldName;
         this.newValue = newValue;
-        this.fullInvocation = new String(String.format("%s(%s, %s, %s, %s)", methodName, managerID, recordID, fieldName, newValue));
+        this.fullInvocation = String.format("%s(%s, %s, %s, %s)", methodName, managerID, recordID, fieldName, newValue);
     }
 
     // For transferRecord
@@ -72,7 +72,7 @@ public class Request implements Serializable {
         this.methodName = methodName;
         this.recordID = recordID;
         this.remoteCenterServerName = remoteCenterServerName;
-        this.fullInvocation = new String(String.format("%s(%s, %s, %s)", methodName, managerID, recordID, remoteCenterServerName));
+        this.fullInvocation = String.format("%s(%s, %s, %s)", methodName, managerID, recordID, remoteCenterServerName);
     }
 
     // For printRecord
@@ -80,7 +80,7 @@ public class Request implements Serializable {
         this.managerID = managerID;
         this.methodName = methodName;
         this.recordID = recordID;
-        this.fullInvocation = new String(String.format("%s(%s, %s)", methodName, managerID, recordID));
+        this.fullInvocation = String.format("%s(%s, %s)", methodName, managerID, recordID);
     }
 
     // Getters
