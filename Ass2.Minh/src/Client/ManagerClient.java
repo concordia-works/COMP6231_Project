@@ -107,7 +107,7 @@ public class ManagerClient {
                     client.printRecord(dcmsServer);
                     break;
                 case 7:
-                    System.out.println(dcmsServer.printAllRecords());
+                    System.out.println(dcmsServer.printAllRecords(managerID));
                     break;
                 case 8:
                     System.out.print("Enter Manager ID: ");

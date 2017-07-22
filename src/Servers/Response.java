@@ -1,34 +1,32 @@
 package Servers;
 
+import Utils.Config;
+
 import java.io.Serializable;
 
 public class Response implements Serializable {
     private int sequenceNumber;
 
-    private String result;
+    private String content;
     private boolean isSuccess;
 
+    public Response(Request request, boolean isSuccess, String result) {
+        this.sequenceNumber = request.getSequenceNumber();
+        this.isSuccess = isSuccess;
+        String overall = isSuccess ? "successful" : "failed";
+        this.content = String.format(Config.RESPONSE.RESPONSE_CONTENT, request.getFullInvocation(), overall, result);
+    }
+
+    // Getters & Setters
     public int getSequenceNumber() {
         return sequenceNumber;
     }
 
-    public void setSequenceNumber(int sequenceNumber) {
-        this.sequenceNumber = sequenceNumber;
-    }
-
-    public String getResult() {
-        return result;
-    }
-
-    public void setResult(String result) {
-        this.result = result;
+    public String getContent() {
+        return content;
     }
 
     public boolean isSuccess() {
         return isSuccess;
-    }
-
-    public void setSuccess(boolean success) {
-        isSuccess = success;
     }
 }
