@@ -16,8 +16,6 @@ public class FIFO {
     private Map<String, TreeMap<Integer, Response>> holdbackResponse;
     private final Object holdbackResponseLock = new Object();
 
-    private ArrayList<>
-
     public FIFO() {
         sequenceRequestNumber = new HashMap<>();
         holdbackRequest = new HashMap<>();
