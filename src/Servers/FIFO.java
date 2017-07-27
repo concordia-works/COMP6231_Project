@@ -16,6 +16,8 @@ public class FIFO {
     private Map<String, TreeMap<Integer, Response>> holdbackResponse;
     private final Object holdbackResponseLock = new Object();
 
+    private ArrayList<>
+
     public FIFO() {
         sequenceRequestNumber = new HashMap<>();
         holdbackRequest = new HashMap<>();
@@ -108,6 +110,21 @@ public class FIFO {
         }
     }
 
+    /**
+     * RELIABLE UNICAST
+     *
+     * For reliable unicast, the server needs 2 threads
+     * One for sending messages, one for receiving acknowledgements
+     * Sending threads
+     * - After sending a message, put it into an array
+     * - Each message has a timeout, messages will be resend as long as no acknowledgement
+     * - After receiving the acknowledgement, remove the message from the array
+     *
+     * Receiving threads
+     * - Every time receiving a message, send back an acknowledgement immediately
+     * - Use checksums to ensure messages' integrity
+     * - Check for duplicated messages
+     */
 
     // Send a message to another process reliably
     public void uniCast(InetAddress address, int port, byte[] data) {}
