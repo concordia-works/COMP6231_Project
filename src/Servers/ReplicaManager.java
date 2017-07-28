@@ -2,6 +2,8 @@ package Servers;
 
 import Utils.Config;
 import Utils.Configuration;
+import Utils.Request;
+import Utils.Response;
 import org.omg.CORBA.DCMS;
 import org.omg.CORBA.DCMSHelper;
 import org.omg.CORBA.ORB;
@@ -65,7 +67,7 @@ public class ReplicaManager implements Runnable {
             fifo = new FIFO();
             prepareORB();
         } catch (Exception e) {
-            e.printStackTrace();
+            e.printStackTrace(System.out);
         }
     }
 
@@ -217,54 +219,51 @@ public class ReplicaManager implements Runnable {
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        try {
-                            // Rebuild the request object
-                            Request request = deserialize(requestPacket.getData());
-                            Response response;
-                            if (request.getSequenceNumber() == fifo.getExpectedRequestNumber(request.getManagerID())) { // This request is the one expected
-                                // Add the request to the queue, so it can be executed in the next step
-                                fifo.holdRequest(request.getManagerID(), request);
+                        // Rebuild the request object
+                        Request request = Config.deserializeRequest(requestPacket.getData());
+                        String managerID = request.getManagerID();
+                        Response response;
+                        if (request.getSequenceNumber() == fifo.getExpectedRequestNumber(managerID)) { // This request is the one expected
+                            // Add the request to the queue, so it can be executed in the next step
+                            fifo.holdRequest(managerID, request);
 
-                                // Execute this request and the continuous chain of requests after it hold in the queue
-                                while (true) {
-                                    Request currentRequest = fifo.popNextRequest(request.getManagerID());
+                            // Execute this request and the continuous chain of requests after it hold in the queue
+                            while (true) {
+                                Request currentRequest = fifo.popNextRequest(managerID);
 
-                                    // Increase the expected sequence number by 1
-                                    fifo.generateRequestNumber(request.getManagerID());
+                                // Increase the expected sequence number by 1
+                                fifo.generateRequestNumber(managerID);
 
-                                    // Handle the request
-                                    response = executeRequest(request);
-
-                                    /**
-                                     * Only broadcast requests if the leader executes the request successfully
-                                     * If the leader succeeds, the response to client will be successful
-                                     * As long as a RM can proceed the request, clients still get the successful result
-                                     * Leader waits for acknowledgements from both backups then answers FrontEndImpl
-                                     */
-                                    // Send the result to backups & wait for acknowledgements
-                                    if (response.isSuccess())
-                                        broadcastAndGetAcknowledgement(requestPacket.getData());
-
-                                    // Response to FrontEndImpl
-                                    responseToFrontEnd(response);
-
-                                    // If the next request on hold doesn't have the expected sequence number, the loop will end
-                                    if (fifo.peekFirstRequestHoldNumber(request.getManagerID()) != fifo.getExpectedRequestNumber(request.getManagerID()))
-                                        break;
-                                }
-                            } else if (request.getSequenceNumber() > fifo.getExpectedRequestNumber(request.getManagerID())) { // There're other requests must come before this request
-                                // Save the request to the holdback queue
-                                fifo.holdRequest(request.getManagerID(), request);
+                                // Handle the request
+                                response = executeRequest(currentRequest);
 
                                 /**
-                                 * How to take care of the situation
-                                 * When the request is put to the queue
-                                 * But will never be execute until a new request is sent???
+                                 * Only broadcast requests if the leader executes the request successfully
+                                 * If the leader succeeds, the response to client will be successful
+                                 * As long as a RM can proceed the request, clients still get the successful result
+                                 * Leader waits for acknowledgements from both backups then answers FrontEndImpl
                                  */
-                            } // Else the request is duplicated, ignore it
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
+                                // Send the result to backups & wait for acknowledgements
+                                if (response.isSuccess())
+                                    broadcastAndGetAcknowledgement(requestPacket.getData());
+
+                                // Response to FrontEndImpl
+                                responseToFrontEnd(response);
+
+                                // If the next request on hold doesn't have the expected sequence number, the loop will end
+                                if (fifo.peekFirstRequestHoldNumber(managerID) != fifo.getExpectedRequestNumber(managerID))
+                                    break;
+                            }
+                        } else if (request.getSequenceNumber() > fifo.getExpectedRequestNumber(managerID)) { // There're other requests must come before this request
+                            // Save the request to the holdback queue
+                            fifo.holdRequest(managerID, request);
+
+                            /**
+                             * How to take care of the situation
+                             * When the request is put to the queue
+                             * But will never be execute until a new request is sent???
+                             */
+                        } // Else the request is duplicated, ignore it
                     }
                 }).start();
             }
@@ -292,51 +291,48 @@ public class ReplicaManager implements Runnable {
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-                        try {
+                        /**
+                         * To improve performance, backups will send acknowledgement to the leader
+                         * Right when it receive the message, don't need to wait for the processing
+                         */
+                        // Send acknowledgement to the leader
+
+                        // Rebuild the request object
+                        Request request = Config.deserializeRequest(requestPacket.getData());
+                        String managerID = request.getManagerID();
+                        if (request.getSequenceNumber() == fifo.getExpectedRequestNumber(managerID)) { // This request is the one expected
+                            // Add the request to the queue, so it can be executed in the next step
+                            fifo.holdRequest(managerID, request);
+
+                            // Execute this request and the continuous chain of requests after it hold in the queue
+                            while (true) {
+                                Request currentRequest = fifo.popNextRequest(managerID);
+
+                                // Increase the expected sequence number by 1
+                                fifo.generateRequestNumber(managerID);
+
+                                // Handle the request
+                                executeRequest(currentRequest);
+
+                                // If the next request on hold doesn't have the expected sequence number, the loop will end
+                                if (fifo.peekFirstRequestHoldNumber(managerID) != fifo.getExpectedRequestNumber(managerID))
+                                    break;
+                            }
+                        } else if (request.getSequenceNumber() > fifo.getExpectedRequestNumber(managerID)) { // There're other requests must come before this request
+                            // Save the request to the holdback queue
+                            fifo.holdRequest(managerID, request);
+
                             /**
-                             * To improve performance, backups will send acknowledgement to the leader
-                             * Right when it receive the message, don't need to wait for the processing
+                             * How to take care of the situation
+                             * When the request is put to the queue
+                             * But will never be execute until a new request is sent???
                              */
-                            // Send acknowledgement to the leader
-
-                            // Rebuild the request object
-                            Request request = deserialize(requestPacket.getData());
-                            if (request.getSequenceNumber() == fifo.getExpectedRequestNumber(request.getManagerID())) { // This request is the one expected
-                                // Add the request to the queue, so it can be executed in the next step
-                                fifo.holdRequest(request.getManagerID(), request);
-
-                                // Execute this request and the continuous chain of requests after it hold in the queue
-                                while (true) {
-                                    Request currentRequest = fifo.popNextRequest(request.getManagerID());
-
-                                    // Increase the expected sequence number by 1
-                                    fifo.generateRequestNumber(request.getManagerID());
-
-                                    // Handle the request
-                                    executeRequest(request);
-
-                                    // If the next request on hold doesn't have the expected sequence number, the loop will end
-                                    if (fifo.peekFirstRequestHoldNumber(request.getManagerID()) != fifo.getExpectedRequestNumber(request.getManagerID()))
-                                        break;
-                                }
-                            } else if (request.getSequenceNumber() > fifo.getExpectedRequestNumber(request.getManagerID())) { // There're other requests must come before this request
-                                // Save the request to the holdback queue
-                                fifo.holdRequest(request.getManagerID(), request);
-
-                                /**
-                                 * How to take care of the situation
-                                 * When the request is put to the queue
-                                 * But will never be execute until a new request is sent???
-                                 */
-                            } // Else the request is duplicated, ignore it
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
+                        } // Else the request is duplicated, ignore it
                     }
                 }).start();
             }
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            e.printStackTrace(System.out);
         } finally {
             if (leaderSocket != null)
                 leaderSocket.close();
