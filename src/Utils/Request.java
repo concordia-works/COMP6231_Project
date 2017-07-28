@@ -1,4 +1,4 @@
-package Servers;
+package Utils;
 
 import Utils.Config;
 
@@ -26,7 +26,8 @@ public class Request implements Serializable {
     private String fullInvocation;
 
     // For createTRecord
-    public Request(String managerID, Config.REQUEST.METHODS_NAME methodName, String firstName, String lastName, String address, String phone, String specialization, String location) {
+    public Request(int sequenceNumber, String managerID, Config.REQUEST.METHODS_NAME methodName, String firstName, String lastName, String address, String phone, String specialization, String location) {
+        this.sequenceNumber = sequenceNumber;
         this.managerID = managerID;
         this.methodName = methodName;
         this.firstName = firstName;
@@ -39,7 +40,8 @@ public class Request implements Serializable {
     }
 
     // For createSRecord
-    public Request(String managerID, Config.REQUEST.METHODS_NAME methodName, String firstName, String lastName, String coursesRegistered, String status) {
+    public Request(int sequenceNumber, String managerID, Config.REQUEST.METHODS_NAME methodName, String firstName, String lastName, String coursesRegistered, String status) {
+        this.sequenceNumber = sequenceNumber;
         this.managerID = managerID;
         this.methodName = methodName;
         this.firstName = firstName;
@@ -50,14 +52,16 @@ public class Request implements Serializable {
     }
 
     // For getRecordsCount & printAllRecords
-    public Request(String managerID, Config.REQUEST.METHODS_NAME methodName) {
+    public Request(int sequenceNumber, String managerID, Config.REQUEST.METHODS_NAME methodName) {
+        this.sequenceNumber = sequenceNumber;
         this.managerID = managerID;
         this.methodName = methodName;
         this.fullInvocation = String.format("%s(%s)", methodName, managerID);
     }
 
     // For editRecord
-    public Request(String managerID, Config.REQUEST.METHODS_NAME methodName, String recordID, String fieldName, String newValue) {
+    public Request(int sequenceNumber, String managerID, Config.REQUEST.METHODS_NAME methodName, String recordID, String fieldName, String newValue) {
+        this.sequenceNumber = sequenceNumber;
         this.managerID = managerID;
         this.methodName = methodName;
         this.recordID = recordID;
@@ -67,7 +71,8 @@ public class Request implements Serializable {
     }
 
     // For transferRecord
-    public Request(String managerID, Config.REQUEST.METHODS_NAME methodName, String recordID, String remoteCenterServerName) {
+    public Request(int sequenceNumber, String managerID, Config.REQUEST.METHODS_NAME methodName, String recordID, String remoteCenterServerName) {
+        this.sequenceNumber = sequenceNumber;
         this.managerID = managerID;
         this.methodName = methodName;
         this.recordID = recordID;
@@ -76,7 +81,8 @@ public class Request implements Serializable {
     }
 
     // For printRecord
-    public Request(String managerID, Config.REQUEST.METHODS_NAME methodName, String recordID) {
+    public Request(int sequenceNumber, String managerID, Config.REQUEST.METHODS_NAME methodName, String recordID) {
+        this.sequenceNumber = sequenceNumber;
         this.managerID = managerID;
         this.methodName = methodName;
         this.recordID = recordID;
