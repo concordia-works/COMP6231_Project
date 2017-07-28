@@ -67,7 +67,7 @@ public class ReplicaManager implements Runnable {
             fifo = new FIFO();
             prepareORB();
         } catch (Exception e) {
-            e.printStackTrace();
+            e.printStackTrace(System.out);
         }
     }
 
@@ -301,20 +301,21 @@ public class ReplicaManager implements Runnable {
                     public void run() {
                         // Rebuild the request object
                         Request request = Config.deserializeRequest(requestPacket.getData());
+                        String managerID = request.getManagerID();
                         Response response;
-                        if (request.getSequenceNumber() == fifo.getExpectedRequestNumber(request.getManagerID())) { // This request is the one expected
+                        if (request.getSequenceNumber() == fifo.getExpectedRequestNumber(managerID)) { // This request is the one expected
                             // Add the request to the queue, so it can be executed in the next step
-                            fifo.holdRequest(request.getManagerID(), request);
+                            fifo.holdRequest(managerID, request);
 
                             // Execute this request and the continuous chain of requests after it hold in the queue
                             while (true) {
-                                Request currentRequest = fifo.popNextRequest(request.getManagerID());
+                                Request currentRequest = fifo.popNextRequest(managerID);
 
                                 // Increase the expected sequence number by 1
-                                fifo.generateRequestNumber(request.getManagerID());
+                                fifo.generateRequestNumber(managerID);
 
                                 // Handle the request
-                                response = executeRequest(request);
+                                response = executeRequest(currentRequest);
 
                                 /**
                                  * Only broadcast requests if the leader executes the request successfully
@@ -330,12 +331,12 @@ public class ReplicaManager implements Runnable {
                                 responseToFrontEnd(response);
 
                                 // If the next request on hold doesn't have the expected sequence number, the loop will end
-                                if (fifo.peekFirstRequestHoldNumber(request.getManagerID()) != fifo.getExpectedRequestNumber(request.getManagerID()))
+                                if (fifo.peekFirstRequestHoldNumber(managerID) != fifo.getExpectedRequestNumber(managerID))
                                     break;
                             }
-                        } else if (request.getSequenceNumber() > fifo.getExpectedRequestNumber(request.getManagerID())) { // There're other requests must come before this request
+                        } else if (request.getSequenceNumber() > fifo.getExpectedRequestNumber(managerID)) { // There're other requests must come before this request
                             // Save the request to the holdback queue
-                            fifo.holdRequest(request.getManagerID(), request);
+                            fifo.holdRequest(managerID, request);
 
                             /**
                              * How to take care of the situation
@@ -378,27 +379,28 @@ public class ReplicaManager implements Runnable {
 
                         // Rebuild the request object
                         Request request = Config.deserializeRequest(requestPacket.getData());
-                        if (request.getSequenceNumber() == fifo.getExpectedRequestNumber(request.getManagerID())) { // This request is the one expected
+                        String managerID = request.getManagerID();
+                        if (request.getSequenceNumber() == fifo.getExpectedRequestNumber(managerID)) { // This request is the one expected
                             // Add the request to the queue, so it can be executed in the next step
-                            fifo.holdRequest(request.getManagerID(), request);
+                            fifo.holdRequest(managerID, request);
 
                             // Execute this request and the continuous chain of requests after it hold in the queue
                             while (true) {
-                                Request currentRequest = fifo.popNextRequest(request.getManagerID());
+                                Request currentRequest = fifo.popNextRequest(managerID);
 
                                 // Increase the expected sequence number by 1
-                                fifo.generateRequestNumber(request.getManagerID());
+                                fifo.generateRequestNumber(managerID);
 
                                 // Handle the request
-                                executeRequest(request);
+                                executeRequest(currentRequest);
 
                                 // If the next request on hold doesn't have the expected sequence number, the loop will end
-                                if (fifo.peekFirstRequestHoldNumber(request.getManagerID()) != fifo.getExpectedRequestNumber(request.getManagerID()))
+                                if (fifo.peekFirstRequestHoldNumber(managerID) != fifo.getExpectedRequestNumber(managerID))
                                     break;
                             }
-                        } else if (request.getSequenceNumber() > fifo.getExpectedRequestNumber(request.getManagerID())) { // There're other requests must come before this request
+                        } else if (request.getSequenceNumber() > fifo.getExpectedRequestNumber(managerID)) { // There're other requests must come before this request
                             // Save the request to the holdback queue
-                            fifo.holdRequest(request.getManagerID(), request);
+                            fifo.holdRequest(managerID, request);
 
                             /**
                              * How to take care of the situation
@@ -410,7 +412,7 @@ public class ReplicaManager implements Runnable {
                 }).start();
             }
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            e.printStackTrace(System.out);
         } finally {
             if (leaderSocket != null)
                 leaderSocket.close();
