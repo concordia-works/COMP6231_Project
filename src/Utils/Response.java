@@ -1,6 +1,4 @@
-package Servers;
-
-import Utils.Config;
+package Utils;
 
 import java.io.Serializable;
 
