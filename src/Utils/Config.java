@@ -8,7 +8,14 @@ public class Config {
     private Config() {}
 
     public static class ARCHITECTURE {
-        public enum REPLICAS {MINH, KAMAL, KEN_RO}
+        public enum REPLICAS {
+            MINH(3), KAMAL(2), KEN_RO(1);
+
+            private final int id;
+            REPLICAS(int id) { this.id = id; }
+            public int getValue() { return id; }
+        }
+
         public enum SERVER_ID {MTL, LVL, DDO}
     }
 
