@@ -1,5 +1,8 @@
 package Servers;
 
+import HelloApp.Hello;
+import HelloApp.HelloHelper;
+import HelloServers.HelloImpl;
 import Utils.*;
 import org.omg.CORBA.DCMS;
 import org.omg.CORBA.DCMSHelper;
@@ -51,8 +54,8 @@ public class ReplicaManager implements Runnable {
                     this.fromLeaderPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getValue() * Config.UDP.PORT_LEADER_TO_BACKUPS;
                     this.fromBackupPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getValue() * Config.UDP.PORT_BACKUPS_TO_LEADER;
                     this.heartBeatPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getValue() * Config.UDP.PORT_HEART_BEAT;
-                    HeartBeat h1 = new HeartBeat(Config.ARCHITECTURE.REPLICAS.KEN_RO,Config.UDP.PORT_HEART_BEAT);
-                    h1.start();
+//                    HeartBeat h1 = new HeartBeat(Config.ARCHITECTURE.REPLICAS.KEN_RO,Config.UDP.PORT_HEART_BEAT);
+//                    h1.start();
                     break;
                 case KAMAL:
                     isLeader = false;
@@ -61,8 +64,8 @@ public class ReplicaManager implements Runnable {
                     this.fromLeaderPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getValue() * Config.UDP.PORT_LEADER_TO_BACKUPS;
                     this.fromBackupPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getValue() * Config.UDP.PORT_BACKUPS_TO_LEADER;
                     this.heartBeatPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getValue() * Config.UDP.PORT_HEART_BEAT;
-                    HeartBeat h2=new HeartBeat(Config.ARCHITECTURE.REPLICAS.KAMAL,Config.UDP.PORT_HEART_BEAT);
-                    h2.start();
+//                    HeartBeat h2=new HeartBeat(Config.ARCHITECTURE.REPLICAS.KAMAL,Config.UDP.PORT_HEART_BEAT);
+//                    h2.start();
                     break;
                 case MINH:
                     isLeader = true;
@@ -71,8 +74,8 @@ public class ReplicaManager implements Runnable {
                     this.fromLeaderPort = Config.ARCHITECTURE.REPLICAS.MINH.getValue() * Config.UDP.PORT_LEADER_TO_BACKUPS;
                     this.fromBackupPort = Config.ARCHITECTURE.REPLICAS.MINH.getValue() * Config.UDP.PORT_BACKUPS_TO_LEADER;
                     this.heartBeatPort = Config.ARCHITECTURE.REPLICAS.MINH.getValue() * Config.UDP.PORT_HEART_BEAT;
-                    HeartBeat h3 = new HeartBeat(Config.ARCHITECTURE.REPLICAS.MINH,Config.UDP.PORT_HEART_BEAT);
-                    h3.start();
+//                    HeartBeat h3 = new HeartBeat(Config.ARCHITECTURE.REPLICAS.MINH,Config.UDP.PORT_HEART_BEAT);
+//                    h3.start();
                     break;
                 default:
                     // Do nothing
@@ -95,12 +98,12 @@ public class ReplicaManager implements Runnable {
                 startMinhReplica();
                 break;
             case KAMAL:
-//                startKamalReplica();
-                startMinhReplica();
+                startKamalReplica();
+//                startMinhReplica();
                 break;
             case KEN_RO:
-//                startKenroReplica();
-                startMinhReplica();
+                startKenroReplica();
+//                startMinhReplica();
                 break;
             default:
                 // Do nothing
@@ -245,19 +248,19 @@ public class ReplicaManager implements Runnable {
             rootPOA.the_POAManager().activate();
 
             // create servant and register it with the ORB
-            HelloImpl helloImplMTL = new HelloImpl("DDO");
+            HelloImpl helloImplMTL = new HelloImpl("MTL");
             helloImplMTL.setORB(orb);
-            HelloImpl helloImplLVL = new HelloImpl("DDO");
+            HelloImpl helloImplLVL = new HelloImpl("LVL");
             helloImplLVL.setORB(orb);
             HelloImpl helloImplDDO = new HelloImpl("DDO");
             helloImplDDO.setORB(orb);
 
             // get object reference from the servant
-            org.omg.CORBA.Object refMTL = rootpoa.servant_to_reference(helloImplMTL);
+            org.omg.CORBA.Object refMTL = rootPOA.servant_to_reference(helloImplMTL);
             Hello hrefMTL = HelloHelper.narrow(refMTL);
-            org.omg.CORBA.Object refLVL = rootpoa.servant_to_reference(helloImplLVL);
+            org.omg.CORBA.Object refLVL = rootPOA.servant_to_reference(helloImplLVL);
             Hello hrefLVL = HelloHelper.narrow(refLVL);
-            org.omg.CORBA.Object refDDO = rootpoa.servant_to_reference(helloImplDDO);
+            org.omg.CORBA.Object refDDO = rootPOA.servant_to_reference(helloImplDDO);
             Hello hrefDDO = HelloHelper.narrow(refDDO);
 
 
@@ -275,9 +278,9 @@ public class ReplicaManager implements Runnable {
             NameComponent pathMTL[] = ncRef.to_name(nameMTL);
             NameComponent pathLVL[] = ncRef.to_name(nameLVL);
             NameComponent pathDDO[] = ncRef.to_name(nameDDO);
-            ncRef.rebind(pathMTL, href);
-            ncRef.rebind(pathLVL, href);
-            ncRef.rebind(pathDDO, href);
+            ncRef.rebind(pathMTL, hrefMTL);
+            ncRef.rebind(pathLVL, hrefLVL);
+            ncRef.rebind(pathDDO, hrefDDO);
 
             System.out.println("MTL Server is ready and waiting ...");
             System.out.println("LVL Server is ready and waiting ...");
@@ -288,7 +291,11 @@ public class ReplicaManager implements Runnable {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    helloImpl.serverUDP(6789);
+                    try {
+                        helloImplMTL.serverUDP(6789);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
             }).start();
             System.out.println("ServerUDP MTL is running ...");
@@ -296,7 +303,11 @@ public class ReplicaManager implements Runnable {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    helloImpl.serverUDP(6788);
+                    try {
+                        helloImplLVL.serverUDP(6788);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
             }).start();
             System.out.println("ServerUDP LVL is running ...");
@@ -304,7 +315,11 @@ public class ReplicaManager implements Runnable {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    helloImpl.serverUDP(6787);
+                    try {
+                        helloImplDDO.serverUDP(6787);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
                 }
             }).start();
             System.out.println("ServerUDP DDO is running ...");
