@@ -2,12 +2,12 @@ package Servers;
 
 import Utils.Request;
 import Utils.Response;
+import Utils.Unicast;
 
-import java.net.InetAddress;
+import java.net.DatagramSocket;
 import java.util.*;
 
 public class FIFO {
-    // For Replica Manager & Backups
     private Map<String, Integer> sequenceRequestNumber;
     private final Object sequenceRequestLock = new Object();
 
@@ -113,5 +113,20 @@ public class FIFO {
     }
 
     // Send a message to a group of processes reliably
-    public void multiCast(InetAddress[] addresses, int[] ports, byte[] data) {}
+    public void multiCast(ArrayList<Integer> ports, Request request) {
+        for (int i = 0; i < ports.size(); i++)
+            uniCast(ports.get(i), request);
+    }
+
+    private void uniCast(int port, Request request) {
+        Unicast unicast = null;
+        try {
+            unicast = new Unicast(port);
+            unicast.send(request);
+        } catch (Exception e) {
+            e.printStackTrace();
+            if (unicast != null && unicast.isSocketOpen())
+                unicast.closeSocket();
+        }
+    }
 }

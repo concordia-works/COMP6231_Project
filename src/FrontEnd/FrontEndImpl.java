@@ -4,8 +4,10 @@ import Servers.FIFO;
 import Utils.Request;
 import Utils.Config;
 import Utils.Response;
+import Utils.Unicast;
 import org.omg.CORBA.ORB;
 
+import java.net.InetAddress;
 import java.net.SocketException;
 
 public class FrontEndImpl extends FEPOA {
@@ -64,13 +66,17 @@ public class FrontEndImpl extends FEPOA {
     }
 
     private String sendAndGetResponse(Request request) {
+        Unicast unicast = null;
         try {
-            Unicast unicast = new Unicast(leaderPort);
+            unicast = new Unicast(leaderPort);
             unicast.send(request);
             Response response = unicast.receive();
             return response.getContent();
-        } catch (SocketException e) {
+        } catch (Exception e) {
             e.printStackTrace(System.out);
+        } finally {
+            if (unicast != null)
+                unicast.closeSocket();
         }
         return "";
     }

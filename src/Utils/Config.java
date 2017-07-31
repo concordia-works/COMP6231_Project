@@ -9,7 +9,7 @@ public class Config {
 
     public static class ARCHITECTURE {
         public enum REPLICAS {
-            MINH(3), KAMAL(2), KEN_RO(1);
+            KEN_RO(1), KAMAL(2), MINH(3);
 
             private final int id;
             REPLICAS(int id) { this.id = id; }
@@ -26,10 +26,10 @@ public class Config {
 
     public static class RESPONSE {
         public static final String RESPONSE_CONTENT = "Request %s is %s" + System.lineSeparator() + "%s";
-        public static final String CREATE_T_RECORD = "Record %s is created";
-        public static final String CREATE_S_RECORD = "Student record %s is created";
-        public static final String EDIT_RECORD = "Record %s is edited";
-        public static final String TRANSFER_RECORD = "Record %s is transferred";
+        public static final String CREATE_T_RECORD = "Record %s is created" + System.lineSeparator();
+        public static final String CREATE_S_RECORD = "Student record %s is created" + System.lineSeparator();
+        public static final String EDIT_RECORD = "Record %s is edited" + System.lineSeparator();
+        public static final String TRANSFER_RECORD = "Record %s is transferred" + System.lineSeparator();
     }
 
     public static class CORBA {
@@ -45,6 +45,44 @@ public class Config {
         public static final int PORT_LEADER_TO_BACKUPS = 234;
         public static final int PORT_BACKUPS_TO_LEADER = 567;
         public static final int PORT_HEART_BEAT = 345;
+        public static final int PORT_ELECTION = 678;
+    }
+
+    public static class ELECTION {
+        public static final String MESSAGE = "Election message";
+        public static final String RESPONSE = "Election response";
+        public static final int ANSWER_TIMEOUT = 3000;
+    }
+
+    public static class UI {
+        public static final String MAIN_MENU = System.lineSeparator() +
+                "0. Quit" + System.lineSeparator() +
+                "1. Single Thread" + System.lineSeparator() +
+                "2. Multi Threads" + System.lineSeparator() +
+                "Your choice: ";
+
+        public static final String SINGLE_THREAD_MENU = System.lineSeparator() +
+                "0. Back" + System.lineSeparator() +
+                "1. Create Student record" + System.lineSeparator() +
+                "2. Create Teacher record" + System.lineSeparator() +
+                "3. Edit record" + System.lineSeparator() +
+                "4. Get records count" + System.lineSeparator() +
+                "5. Transfer record" + System.lineSeparator() +
+                "6. Print a record" + System.lineSeparator() +
+                "7. Print all records" + System.lineSeparator() +
+                "8. Login to another server" + System.lineSeparator() +
+                "Your choice: ";
+
+        public static final String MULTI_THREAD_MENU = System.lineSeparator() +
+                "0. Back" + System.lineSeparator() +
+                "1. Multi-threads create new records concurrently" + System.lineSeparator() +
+                "2. Multi-threads edit, print and transfer the same record concurrently" + System.lineSeparator() +
+                "Your choice: ";
+    }
+
+    public static class LOGGING {
+        public static final String MANAGER_FILE_PATH = "/Users/quocminhvu/Documents/workspace/IdeaProjects/COMP6231_Assignment02/log/manager_%s.log";
+        public static final String GET_RECORDS_COUNT = "%s get count %s";
     }
 
     public static Request deserializeRequest(byte[] data) {
