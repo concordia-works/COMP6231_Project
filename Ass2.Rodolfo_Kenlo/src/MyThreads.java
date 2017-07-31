@@ -53,7 +53,7 @@ public class MyThreads extends Thread {
             System.out.println(createResult);
 
             //multiThreaded record Transfer
-            String transferResult = helloImpl.transferRecord(managerID,"TR00001", "LVL");
+            boolean transferResult = helloImpl.transferRecord(managerID,"TR00001", "LVL");
             System.out.println(transferResult);
 
 
