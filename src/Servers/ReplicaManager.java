@@ -83,10 +83,12 @@ public class ReplicaManager implements Runnable {
                 startMinhReplica();
                 break;
             case KAMAL:
-                startKamalReplica();
+//                startKamalReplica();
+                startMinhReplica();
                 break;
             case KEN_RO:
-                startKenroReplica();
+//                startKenroReplica();
+                startMinhReplica();
                 break;
             default:
                 // Do nothing

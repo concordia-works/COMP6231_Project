@@ -5,7 +5,7 @@ module FrontEnd {
         string getRecordCounts(in string managerID);
         string editRecord(in string managerID, in string recordID, in string fieldName, in string newValue);
         string transferRecord(in string managerID, in string recordID, in string remoteCenterServerName);
-        string printRecord(in string managerID, in string recordID);
         string printAllRecords(in string managerID);
+        string printRecord(in string managerID, in string recordID);
     };
 };
