@@ -25,7 +25,7 @@ public class ReplicaManager implements Runnable {
     private int fromFrontEndPort;
     private int toFrontEndPort;
     private int fromLeaderPort;
-    private int leaderPort;
+    private int fromBackupPort;
     private int heartBeatPort;
     private boolean isLeader;
     private ORB orb;
@@ -34,18 +34,21 @@ public class ReplicaManager implements Runnable {
     private FIFO fifo;
     private Config.ARCHITECTURE.REPLICAS leaderID;
     private Map<Integer, Integer> acknowledgementMap;
+    private Election election;
 
     public ReplicaManager(Config.ARCHITECTURE.REPLICAS replicaManagerID) {
         try {
             this.replicaManagerID = replicaManagerID;
             this.acknowledgementMap = Collections.synchronizedMap(new HashMap<Integer, Integer>());
+            this.election = new Election(replicaManagerID); // A thread will start listening to election messages
+
             switch (replicaManagerID) {
                 case KEN_RO:
                     isLeader = false;
                     this.fromFrontEndPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getValue() * Config.UDP.PORT_FRONT_END_TO_LEADER;
                     this.toFrontEndPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getValue() * Config.UDP.PORT_LEADER_TO_FRONT_END;
                     this.fromLeaderPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getValue() * Config.UDP.PORT_LEADER_TO_BACKUPS;
-                    this.leaderPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getValue() * Config.UDP.PORT_BACKUPS_TO_LEADER;
+                    this.fromBackupPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getValue() * Config.UDP.PORT_BACKUPS_TO_LEADER;
                     this.heartBeatPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getValue() * Config.UDP.PORT_HEART_BEAT;
                     break;
                 case KAMAL:
@@ -53,7 +56,7 @@ public class ReplicaManager implements Runnable {
                     this.fromFrontEndPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getValue() * Config.UDP.PORT_FRONT_END_TO_LEADER;
                     this.toFrontEndPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getValue() * Config.UDP.PORT_LEADER_TO_FRONT_END;
                     this.fromLeaderPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getValue() * Config.UDP.PORT_LEADER_TO_BACKUPS;
-                    this.leaderPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getValue() * Config.UDP.PORT_BACKUPS_TO_LEADER;
+                    this.fromBackupPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getValue() * Config.UDP.PORT_BACKUPS_TO_LEADER;
                     this.heartBeatPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getValue() * Config.UDP.PORT_HEART_BEAT;
                     break;
                 case MINH:
@@ -61,7 +64,7 @@ public class ReplicaManager implements Runnable {
                     this.fromFrontEndPort = Config.ARCHITECTURE.REPLICAS.MINH.getValue() * Config.UDP.PORT_FRONT_END_TO_LEADER;
                     this.toFrontEndPort = Config.ARCHITECTURE.REPLICAS.MINH.getValue() * Config.UDP.PORT_LEADER_TO_FRONT_END;
                     this.fromLeaderPort = Config.ARCHITECTURE.REPLICAS.MINH.getValue() * Config.UDP.PORT_LEADER_TO_BACKUPS;
-                    this.leaderPort = Config.ARCHITECTURE.REPLICAS.MINH.getValue() * Config.UDP.PORT_BACKUPS_TO_LEADER;
+                    this.fromBackupPort = Config.ARCHITECTURE.REPLICAS.MINH.getValue() * Config.UDP.PORT_BACKUPS_TO_LEADER;
                     this.heartBeatPort = Config.ARCHITECTURE.REPLICAS.MINH.getValue() * Config.UDP.PORT_HEART_BEAT;
                     break;
                 default:
@@ -504,7 +507,7 @@ public class ReplicaManager implements Runnable {
         } catch (SocketException e) {
             e.printStackTrace();
         } finally {
-            if (unicast != null)
+            if (unicast != null && unicast.isSocketOpen())
                 unicast.closeSocket();
         }
     }
@@ -515,8 +518,7 @@ public class ReplicaManager implements Runnable {
             try {
                 byte[] buffer = new byte[50];
                 DatagramPacket acknowledgement = new DatagramPacket(buffer, buffer.length);
-                int listeningPort = replicaManagerID.getValue() * Config.UDP.PORT_BACKUPS_TO_LEADER;
-                socket = new DatagramSocket(listeningPort);
+                socket = new DatagramSocket(fromBackupPort);
                 socket.receive(acknowledgement);
                 new Thread(new Runnable() {
                     @Override
