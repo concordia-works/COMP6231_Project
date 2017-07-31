@@ -9,7 +9,7 @@ public class Config {
 
     public static class ARCHITECTURE {
         public enum REPLICAS {
-            MINH(3), KAMAL(2), KEN_RO(1);
+            KEN_RO(1), KAMAL(2), MINH(3);
 
             private final int id;
             REPLICAS(int id) { this.id = id; }
@@ -45,6 +45,13 @@ public class Config {
         public static final int PORT_LEADER_TO_BACKUPS = 234;
         public static final int PORT_BACKUPS_TO_LEADER = 567;
         public static final int PORT_HEART_BEAT = 345;
+        public static final int PORT_ELECTION = 678;
+    }
+
+    public static class ELECTION {
+        public static final String MESSAGE = "Election message";
+        public static final String RESPONSE = "Election response";
+        public static final int ANSWER_TIMEOUT = 3000;
     }
 
     public static class UI {
