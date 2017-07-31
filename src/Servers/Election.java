@@ -15,7 +15,8 @@ class Election {
 
     public Election(Config.ARCHITECTURE.REPLICAS replicaManagerID) throws SocketException {
         this.replicaManagerID = replicaManagerID;
-        this.listeningSocket = new DatagramSocket(replicaManagerID.getValue() * Config.UDP.PORT_ELECTION);
+        int port = 2 * replicaManagerID.getValue() * Config.UDP.PORT_ELECTION;
+        this.listeningSocket = new DatagramSocket(port);
         this.timeout = Config.ELECTION.ANSWER_TIMEOUT;
 
         new Thread(new Runnable() {
