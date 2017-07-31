@@ -1,8 +1,4 @@
-package FrontEnd;
-
-import Utils.Config;
-import Utils.Request;
-import Utils.Response;
+package Utils;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -24,8 +20,16 @@ public class Unicast {
      */
     public boolean send(Request request) {
         try {
-            byte[] buffer = request.serialize();
-            DatagramPacket requestPacket = new DatagramPacket(buffer, buffer.length, InetAddress.getLocalHost(), serverPort);
+            return send(request.serialize());
+        } catch (IOException e) {
+            e.printStackTrace(System.out);
+            return false;
+        }
+    }
+
+    public boolean send(byte[] data) {
+        try {
+            DatagramPacket requestPacket = new DatagramPacket(data, data.length, InetAddress.getLocalHost(), serverPort);
             socket.send(requestPacket);
         } catch (IOException e) {
             e.printStackTrace(System.out);
@@ -42,11 +46,29 @@ public class Unicast {
             return Config.deserializeResponse(buffer);
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            if (socket != null)
-                socket.close();
         }
         return null;
+    }
+
+    public void closeSocket() {
+        if (socket != null)
+            socket.close();
+    }
+
+    public boolean isSocketOpen() {
+        return (socket != null);
+    }
+
+    public int getLocalPort() {
+        return socket.getLocalPort();
+    }
+
+    public int getRemotePort() {
+        return serverPort;
+    }
+
+    public DatagramSocket getSocket() {
+        return socket;
     }
 
     /**
