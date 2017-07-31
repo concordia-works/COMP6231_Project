@@ -6,8 +6,8 @@ module HelloApp
 		string createTRecord(in string managerID,in string firstName,in string lastName,in string address,in string phone,in IDLArrayList specialization,in string location);
 		string createSRecord(in string managerID,in string firstName,in string lastName,in IDLArrayList courses,in string status,in string statusDate);
 		string getRecordCounts(in string managerID);
-		string editRecord(in string managerID,in string recordID,in string fieldName,in string newValue);
-		string transferRecord(in string managerID,in string recordID,in string remoteCenterServerName);
+		boolean editRecord(in string managerID,in string recordID,in string fieldName,in string newValue);
+		boolean transferRecord(in string managerID,in string recordID,in string remoteCenterServerName);
 		oneway void shutdown();
 	};
 };
