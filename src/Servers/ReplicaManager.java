@@ -199,6 +199,86 @@ public class ReplicaManager implements Runnable {
     }
 
     private void startKenroReplica() {
+        try {
+            // Initiate local ORB object
+            ORB orb = ORB.init(Config.CORBA.ORB_PARAMETERS.split(" "), null);
+
+            // Get reference to RootPOA and get POAManager
+            POA rootPOA = POAHelper.narrow(orb.resolve_initial_references(Config.CORBA.ROOT_POA));
+            rootPOA.the_POAManager().activate();
+
+            // create servant and register it with the ORB
+            HelloImpl helloImplMTL = new HelloImpl("DDO");
+            helloImplMTL.setORB(orb);
+            HelloImpl helloImplLVL = new HelloImpl("DDO");
+            helloImplLVL.setORB(orb);
+            HelloImpl helloImplDDO = new HelloImpl("DDO");
+            helloImplDDO.setORB(orb);
+
+            // get object reference from the servant
+            org.omg.CORBA.Object refMTL = rootpoa.servant_to_reference(helloImplMTL);
+            Hello hrefMTL = HelloHelper.narrow(refMTL);
+            org.omg.CORBA.Object refLVL = rootpoa.servant_to_reference(helloImplLVL);
+            Hello hrefLVL = HelloHelper.narrow(refLVL);
+            org.omg.CORBA.Object refDDO = rootpoa.servant_to_reference(helloImplDDO);
+            Hello hrefDDO = HelloHelper.narrow(refDDO);
+
+
+            // get the root naming context
+            // NameService invokes the name service
+            org.omg.CORBA.Object objRef = orb.resolve_initial_references(Config.CORBA.NAME_SERVICE);
+            // Use NamingContextExt which is part of the Interoperable
+            // Naming Service (INS) specification.
+            NamingContextExt ncRef = NamingContextExtHelper.narrow(objRef);
+
+            // bind the Object Reference in Naming
+            String nameMTL = "MTL";
+            String nameLVL = "LVL";
+            String nameDDO = "DDO";
+            NameComponent pathMTL[] = ncRef.to_name(nameMTL);
+            NameComponent pathLVL[] = ncRef.to_name(nameLVL);
+            NameComponent pathDDO[] = ncRef.to_name(nameDDO);
+            ncRef.rebind(pathMTL, href);
+            ncRef.rebind(pathLVL, href);
+            ncRef.rebind(pathDDO, href);
+
+            System.out.println("MTL Server is ready and waiting ...");
+            System.out.println("LVL Server is ready and waiting ...");
+            System.out.println("DDO Server is ready and waiting ...");
+
+
+            // start UDP server
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    helloImpl.serverUDP(6789);
+                }
+            }).start();
+            System.out.println("ServerUDP MTL is running ...");
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    helloImpl.serverUDP(6788);
+                }
+            }).start();
+            System.out.println("ServerUDP LVL is running ...");
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    helloImpl.serverUDP(6787);
+                }
+            }).start();
+            System.out.println("ServerUDP DDO is running ...");
+
+            // wait for invocations from clients
+            orb.run();
+        } catch (Exception e) {
+            System.err.println("ERROR: " + e);
+            e.printStackTrace(System.out);
+        }
+
     }
 
     private void listenToFrontEnd() {
