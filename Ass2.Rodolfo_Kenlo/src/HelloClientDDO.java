@@ -68,6 +68,7 @@ public class HelloClientDDO {
 		boolean x = false;
 		String choice;
 		String result;
+		boolean result2 = false;
 		do {
 			System.out.println("Which Operation would you like to carry out:" + "\n"
 					+ "PRESS 1 TO INSERT A TEACHER RECORD" + "\n" + "PRESS 2 TO INSERT A STUDENT RECORD" + "\n"
@@ -100,15 +101,15 @@ public class HelloClientDDO {
 				break;
 			case "4":
 				editData();
-				result = helloImpl.editRecord(managerID, edit.get(0), edit.get(1), edit.get(2));
-				System.out.println(result);
+				result2 = helloImpl.editRecord(managerID, edit.get(0), edit.get(1), edit.get(2));
+				System.out.println(result2);
 				edit.clear();
 				x = true;
 				break;
 			case "5":
 				transferData();
-				result = helloImpl.transferRecord(managerID, transfer.get(0), transfer.get(1));
-				System.out.println(result);
+				result2 = helloImpl.transferRecord(managerID, transfer.get(0), transfer.get(1));
+				System.out.println(result2);
 				transfer.clear();
 				x = true;
 				break;
