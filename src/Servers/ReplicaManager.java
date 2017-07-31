@@ -28,6 +28,7 @@ public class ReplicaManager implements Runnable {
     private int fromBackupPort;
     private int heartBeatPort;
     private boolean isLeader;
+    private boolean status=true;
     private ORB orb;
     private org.omg.CORBA.Object namingContextObj;
     private NamingContextExt namingContextRef;
@@ -50,6 +51,8 @@ public class ReplicaManager implements Runnable {
                     this.fromLeaderPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getValue() * Config.UDP.PORT_LEADER_TO_BACKUPS;
                     this.fromBackupPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getValue() * Config.UDP.PORT_BACKUPS_TO_LEADER;
                     this.heartBeatPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getValue() * Config.UDP.PORT_HEART_BEAT;
+                    HeartBeat h1 = new HeartBeat(Config.ARCHITECTURE.REPLICAS.KEN_RO,Config.UDP.PORT_HEART_BEAT);
+                    h1.start();
                     break;
                 case KAMAL:
                     isLeader = false;
@@ -58,6 +61,8 @@ public class ReplicaManager implements Runnable {
                     this.fromLeaderPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getValue() * Config.UDP.PORT_LEADER_TO_BACKUPS;
                     this.fromBackupPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getValue() * Config.UDP.PORT_BACKUPS_TO_LEADER;
                     this.heartBeatPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getValue() * Config.UDP.PORT_HEART_BEAT;
+                    HeartBeat h2=new HeartBeat(Config.ARCHITECTURE.REPLICAS.KAMAL,Config.UDP.PORT_HEART_BEAT);
+                    h2.start();
                     break;
                 case MINH:
                     isLeader = true;
@@ -66,13 +71,17 @@ public class ReplicaManager implements Runnable {
                     this.fromLeaderPort = Config.ARCHITECTURE.REPLICAS.MINH.getValue() * Config.UDP.PORT_LEADER_TO_BACKUPS;
                     this.fromBackupPort = Config.ARCHITECTURE.REPLICAS.MINH.getValue() * Config.UDP.PORT_BACKUPS_TO_LEADER;
                     this.heartBeatPort = Config.ARCHITECTURE.REPLICAS.MINH.getValue() * Config.UDP.PORT_HEART_BEAT;
+                    HeartBeat h3 = new HeartBeat(Config.ARCHITECTURE.REPLICAS.MINH,Config.UDP.PORT_HEART_BEAT);
+                    h3.start();
                     break;
                 default:
                     // Do nothing
                     break;
             }
             fifo = new FIFO();
+
             prepareORB();
+
         } catch (Exception e) {
             e.printStackTrace(System.out);
         }
