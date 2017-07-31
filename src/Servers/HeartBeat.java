@@ -1,7 +1,6 @@
 package Servers;
 
 
-
 import Utils.Config;
 
 import java.io.IOException;
@@ -20,32 +19,30 @@ import java.util.*;
  */
 import Utils.Config;
 import Servers.ReplicaManager;
-public class HeartBeat extends Thread
-{
-    int server_id;
-    int heartbeat_port;
-    int frequency=5;
-int x=Config.ARCHITECTURE.REPLICAS.KEN_RO.getValue() * Config.UDP.PORT_HEART_BEAT;
-    public HeartBeat(int id)                         //Constructor overloaded
+import Utils.Configuration;
+
+public class HeartBeat extends Thread {
+    private Config.ARCHITECTURE.REPLICAS server_id;
+    private int heartbeat_port;
+    private int frequency = 5;
+    private boolean status=false;
+
+    public HeartBeat(Config.ARCHITECTURE.REPLICAS id, int port_no)                         //Constructor overloaded
     {
-        server_id = id;
-        if (server_id == 1)
-            heartbeat_port = 5100;
-        else if (server_id == 2)
-            heartbeat_port = 5101;
-        else if (server_id == 3)
-            heartbeat_port = 5102;
+        this.server_id = id;
+        System.out.println(server_id);
+        this.heartbeat_port = id.getValue() *port_no;
+        System.out.println(heartbeat_port);
+        status=true;
     }
-public int getHeartBeat_Port(int server_id)
-{
-    if (server_id == 1)
-        heartbeat_port = 5100;
-    else if (server_id == 2)
-        heartbeat_port = 5101;
-    else if (server_id == 3)
-        heartbeat_port = 5102;
-    return heartbeat_port;
-}
+
+    public int getHeartBeat_Port(Config.ARCHITECTURE.REPLICAS s_id) {
+        return s_id.getValue() *Config.UDP.PORT_HEART_BEAT;
+    }
+
+    public Config.ARCHITECTURE.REPLICAS getServer_id() {
+        return server_id;
+    }
 
     public void listner() {
         try {
@@ -55,29 +52,30 @@ public int getHeartBeat_Port(int server_id)
                 public void run() {
                     DatagramSocket socket = null;
                     try {
-                        socket = new DatagramSocket(heartbeat_port);
+                        socket = new DatagramSocket(getHeartBeat_Port(server_id));
                         byte[] buffer = new byte[1000];
-                        HashMap<Integer,Instant>msg_recieved=new HashMap();
+                        HashMap<String, Instant> msg_recieved = new HashMap();
+                        for (Config.ARCHITECTURE.REPLICAS replicaID : Config.ARCHITECTURE.REPLICAS.values())
+                        {
+                            msg_recieved.put(replicaID.toString(),Instant.now());
+                        }
                         while (true) {
                             DatagramPacket request = new DatagramPacket(buffer, buffer.length);
 
+                            socket.receive(request);
+                            System.out.println("msg" + new String(request.getData()));
+                            String data_recieved = new String(request.getData());
 
-                                    socket.receive(request);
-                                    System.out.println("msg"+new String(request.getData()));
-                                    String data_recieved =new String(request.getData());
+                            msg_recieved.put(data_recieved.substring(10,data_recieved.length()) , Instant.now());
 
+                       /*     if (data_recieved.contains("I am Alive")) {
+                                msg_recieved.put(data_recieved.substring(10,data_recieved.length()) , Instant.now());
+                            }*/
 
-
-                                    if (data_recieved.contains("I am Alive"))
-                                    {
-                                        msg_recieved.put(Integer.parseInt(data_recieved.substring(10,11)), Instant.now());
-
-                                    }
-
-                            Iterator<Map.Entry<Integer,Instant>> itr = msg_recieved.entrySet().iterator();
-                            while(itr.hasNext()) {
-                                Map.Entry<Integer, Instant> entry = itr.next();
-                                int key = entry.getKey();
+                            Iterator<Map.Entry<String, Instant>> itr = msg_recieved.entrySet().iterator();
+                            while (itr.hasNext()) {
+                                Map.Entry<String, Instant> entry = itr.next();
+                                String key = entry.getKey();
                                 // System.out.println(key +"]]");
                                 Instant time = entry.getValue();
                                 Instant current_time = Instant.now();
@@ -88,16 +86,16 @@ public int getHeartBeat_Port(int server_id)
                                         System.out.println("Key : " + entry.getKey() + " Removed.");
                                         System.out.println("server failed" + key);
                                         itr.remove();
+                                        //call election system
                                     }
                                 }
                             }
                         }
-                                                            }
-                     catch (Exception e) {
-                      e.printStackTrace();
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
                     try {
-                        Thread.sleep((frequency-1)*1000);
+                        Thread.sleep((frequency - 1) * 1000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -113,54 +111,47 @@ public int getHeartBeat_Port(int server_id)
     }
 
 
-    public void sender() throws Exception
-    {
+    public void sender() throws Exception {
+        Config.ARCHITECTURE.REPLICAS threadServerID = this.server_id;
+        System.out.println("this .server id"+this.server_id);
         new Thread(new Runnable() {
             @Override
             public void run() {
-                while(true) {
+                while (true) {
                     try {
-                        if (server_id == 1) {
-                            send_message(2);
-                            send_message(3);
-                        } else if (server_id == 2) {
-                            send_message(1);
-                            send_message(3);
-                        } else  {
-                            send_message(1);
-                            send_message(2);
+                        for (Config.ARCHITECTURE.REPLICAS replicaID : Config.ARCHITECTURE.REPLICAS.values()) {
+                            if (replicaID != threadServerID) {
+                                send_message(replicaID);
+                                System.out.println("send msg"+replicaID);
+                            }
                         }
                     } catch (Exception e) {
                     }
                     try {
-                        Thread.sleep(frequency*1000);
+                        Thread.sleep(frequency * 1000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
                 }
             }
-            }).start();
-        }
+        }).start();
+    }
 
 
-
-    public void send_message(int s_id) throws Exception
-    {
+    public void send_message(Config.ARCHITECTURE.REPLICAS s_id) throws Exception {
         InetAddress host = InetAddress.getLocalHost();
-        byte [] message = ("I am Alive"+this.server_id).getBytes();
+        byte[] message = ("I am Alive" + this.server_id).getBytes();
         DatagramSocket ds = new DatagramSocket();
-        DatagramPacket data_packet= new DatagramPacket(message,message.length, host, getHeartBeat_Port(s_id));//first packet is sent to first serve(port no1)
-        System.out.println("msg sent to port"+getHeartBeat_Port(s_id));
+        DatagramPacket data_packet = new DatagramPacket(message, message.length, host, getHeartBeat_Port(s_id));//first packet is sent to first serve(port no1)
+        System.out.println("msg sent to port" + getHeartBeat_Port(s_id));
         ds.send(data_packet);
     }
 
-    public void run()
-    {
+    public void run() {
         try {
             listner();
             sender();
-        }
-        catch(Exception e) {
+        } catch (Exception e) {
         }
     }
 }
