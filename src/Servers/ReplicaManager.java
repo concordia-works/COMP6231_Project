@@ -27,6 +27,7 @@ public class ReplicaManager implements Runnable {
     private int toLeaderPort;
     private int heartBeatPort;
     private boolean isLeader;
+    private boolean status=true;
     private ORB orb;
     private org.omg.CORBA.Object namingContextObj;
     private NamingContextExt namingContextRef;
@@ -43,6 +44,8 @@ public class ReplicaManager implements Runnable {
                     this.fromLeaderPort = Config.UDP.PORT_LEADER_TO_BACKUPS;
                     this.toLeaderPort = Config.UDP.PORT_BACKUPS_TO_LEADER;
                     this.heartBeatPort = Config.UDP.PORT_HEART_BEAT;
+                    HeartBeat h1=new HeartBeat(Config.ARCHITECTURE.REPLICAS.MINH,Config.UDP.PORT_HEART_BEAT);
+                    h1.start();
                     break;
                 case KAMAL:
                     isLeader = false;
@@ -51,6 +54,8 @@ public class ReplicaManager implements Runnable {
                     this.fromLeaderPort = 2 * Config.UDP.PORT_LEADER_TO_BACKUPS;
                     this.toLeaderPort = 2 * Config.UDP.PORT_BACKUPS_TO_LEADER;
                     this.heartBeatPort = 2 * Config.UDP.PORT_HEART_BEAT;
+                    HeartBeat h2=new HeartBeat(Config.ARCHITECTURE.REPLICAS.KAMAL,Config.UDP.PORT_HEART_BEAT);
+                    h2.start();
                     break;
                 case KEN_RO:
                     isLeader = false;
@@ -59,13 +64,17 @@ public class ReplicaManager implements Runnable {
                     this.fromLeaderPort = 3 * Config.UDP.PORT_LEADER_TO_BACKUPS;
                     this.toLeaderPort = 3 * Config.UDP.PORT_BACKUPS_TO_LEADER;
                     this.heartBeatPort = 3 * Config.UDP.PORT_HEART_BEAT;
+                    HeartBeat h=new HeartBeat(Config.ARCHITECTURE.REPLICAS.KEN_RO,Config.UDP.PORT_HEART_BEAT);
+                    h.start();
                     break;
                 default:
                     // Do nothing
                     break;
             }
             fifo = new FIFO();
+
             prepareORB();
+
         } catch (Exception e) {
             e.printStackTrace(System.out);
         }
