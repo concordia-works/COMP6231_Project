@@ -1,8 +1,10 @@
 package Servers;
 
+import DSassg2.ServerInterfaceHelper;
 import HelloApp.Hello;
 import HelloApp.HelloHelper;
 import HelloServers.HelloImpl;
+import ServersImpl.Server_Imp;
 import Utils.*;
 import org.omg.CORBA.DCMS;
 import org.omg.CORBA.DCMSHelper;
@@ -13,6 +15,7 @@ import org.omg.CosNaming.NamingContextExtHelper;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
@@ -99,11 +102,9 @@ public class ReplicaManager implements Runnable {
                 break;
             case KAMAL:
                 startKamalReplica();
-//                startMinhReplica();
                 break;
             case KEN_RO:
                 startKenroReplica();
-//                startMinhReplica();
                 break;
             default:
                 // Do nothing
@@ -236,6 +237,84 @@ public class ReplicaManager implements Runnable {
     }
 
     private void startKamalReplica() {
+        try {
+            ORB orb = ORB.init("-ORBInitialPort 1050 -ORBInitialHost localhost".split(" "), null);
+            // get reference to rootpoa & activate the POAManager
+            POA rootpoa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
+            rootpoa.the_POAManager().activate();
+            // create servant and register it with the ORB
+
+            Server_Imp ms = new Server_Imp("MTL");
+            ms.setOrb(orb);
+            Server_Imp ds =new Server_Imp("DDO");
+            ds.setOrb(orb);
+            Server_Imp ls =new Server_Imp("LVL");
+            ls.setOrb(orb);
+
+            org.omg.CORBA.Object ref = rootpoa.servant_to_reference(ms);
+            org.omg.CORBA.Object ref1 = rootpoa.servant_to_reference(ds);
+            org.omg.CORBA.Object ref2 = rootpoa.servant_to_reference(ls);
+
+
+            DSassg2.ServerInterface montrealref = ServerInterfaceHelper.narrow(ref);
+            DSassg2.ServerInterface ddoref = ServerInterfaceHelper.narrow(ref1);
+            DSassg2.ServerInterface lavalref = ServerInterfaceHelper.narrow(ref2);
+
+            org.omg.CORBA.Object objRef = orb.resolve_initial_references("NameService");
+            NamingContextExt ncRef = NamingContextExtHelper.narrow(objRef);
+
+            NameComponent path[] = ncRef.to_name("Montreal");
+            ncRef.rebind(path, montrealref);
+            path = ncRef.to_name( "DDO" );
+            ncRef.rebind(path, ddoref);					//object ds is bind to Ddo reference
+            path = ncRef.to_name( "Laval" );
+            ncRef.rebind(path, lavalref);					//object ds is bind to Ddo reference
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        ms.UDPServer(ms.get_udp_port());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
+            System.out.println("Montreal Server statred...");
+            System.out.println("UDP Server started at port" + ms.get_udp_port());
+
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        ds.UDPServer(ds.get_udp_port());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
+            System.out.println(" DDO Server statred...");
+            System.out.println("UDP Server started at port"+ds.get_udp_port());
+
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        ls.UDPServer(ls.get_udp_port());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
+            System.out.println(" LVL Server statred...");
+            System.out.println("UDP Server started at port"+ls.get_udp_port());
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
     }
 
     private void startKenroReplica() {
