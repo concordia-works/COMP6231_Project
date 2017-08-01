@@ -125,7 +125,7 @@ public class FIFO {
             unicast.send(request);
         } catch (Exception e) {
             e.printStackTrace();
-            if (unicast != null)
+            if (unicast != null && unicast.isSocketOpen())
                 unicast.closeSocket();
         }
     }

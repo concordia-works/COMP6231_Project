@@ -590,7 +590,7 @@ public class ManagerClient {
 
     private void editRecord(FE frontEnd) {
         int input;
-        System.out.print("Enter Record ID: ");
+        System.out.print("Enter ServersImpl.Record ID: ");
         String recordID = sc.nextLine().toUpperCase();
 
         String fieldName;
@@ -630,7 +630,7 @@ public class ManagerClient {
     }
 
     private void transferRecord(FE frontEnd) {
-        System.out.print("Enter Record ID: ");
+        System.out.print("Enter ServersImpl.Record ID: ");
         String recordID = sc.nextLine().toUpperCase();
         System.out.print("Enter Server Name: ");
         String serverName = sc.nextLine().toUpperCase();
@@ -640,7 +640,7 @@ public class ManagerClient {
     }
 
     private void printRecord(FE frontEnd) {
-        System.out.print("Enter Record ID: ");
+        System.out.print("Enter ServersImpl.Record ID: ");
         String recordID = sc.nextLine().toUpperCase();
         String result = frontEnd.printRecord(managerID, recordID);
         if (result.compareTo("") != 0) {

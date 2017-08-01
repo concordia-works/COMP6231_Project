@@ -1,3 +1,5 @@
+package HelloServers;
+
 import java.io.*;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -32,7 +34,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
-class HelloImpl extends HelloPOA {
+public class HelloImpl extends HelloPOA {
     private static HashMap<String, ArrayList<Record>> hmap = new HashMap<String, ArrayList<Record>>();
     private ORB orb;
     String serverName;
@@ -73,15 +75,16 @@ class HelloImpl extends HelloPOA {
         String operation = " created the teacher record ";
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         String msg = timestamp + " | " + managerID + operation + recordID + " on the " + serverName + " Server ";
+        String id = recordID;
         serverLog.info(msg);
         clientLog(managerID, msg);
         System.out.println("Teacher Record " + recordID + " was properly created & logged.");
 
-        return msg;
+        return id;
     }
 
     public synchronized String createSRecord(String managerID, String firstName, String lastName, String[] cr, String status,
-                                String statusDate) {
+                                             String statusDate) {
 
         ArrayList<String> courses = new ArrayList<String>();
         String storageIndex;
@@ -102,6 +105,7 @@ class HelloImpl extends HelloPOA {
         String operation = " created the student record ";
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         String msg = timestamp + " | " + managerID + operation + recordID + " on the " + serverName + " Server ";
+        String id = recordID;
         serverLog.info(msg);
         clientLog(managerID, msg);
         //Server Console
@@ -110,7 +114,7 @@ class HelloImpl extends HelloPOA {
         // for testing purpose
         readHashMap(storageIndex);
 
-        return msg;
+        return id;
     }
 
     public String getRecordCounts(String managerID) {
@@ -169,9 +173,9 @@ class HelloImpl extends HelloPOA {
         return msg;
     }
 
-    public synchronized String editRecord(String managerID, String recordID, String fieldName, String newValue) {
-        String logMsg="";
-        String confirmationMsg = "Record ID not found.";
+    public synchronized boolean editRecord(String managerID, String recordID, String fieldName, String newValue) {
+        String logMsg = "";
+        boolean confirmationMsg = false;
         fieldName = fieldName.toUpperCase();
         for (String key : hmap.keySet()) {
             ArrayList<Record> tempAL = hmap.get(key);
@@ -198,11 +202,11 @@ class HelloImpl extends HelloPOA {
                                 }
                                 System.out.println("The registered courses are now: " + newCourseList);
                                 // Write in the ServerLog
-                                Timestamp timestampCourse= new Timestamp(System.currentTimeMillis());
-                                logMsg = timestampCourse + " | " + managerID + " edited the Registered Courses of "+ recordID + " from the " + serverName + " Server";
+                                Timestamp timestampCourse = new Timestamp(System.currentTimeMillis());
+                                logMsg = timestampCourse + " | " + managerID + " edited the Registered Courses of " + recordID + " from the " + serverName + " Server";
                                 serverLog.info(logMsg);
                                 clientLog(managerID, logMsg);
-                                confirmationMsg = logMsg;
+                                confirmationMsg = true;
                                 break;
                             case "STATUS":
                                 String strPreviousStat = ((StudentRecord) tempRec).getStatus();
@@ -216,11 +220,11 @@ class HelloImpl extends HelloPOA {
                                 System.out.println("The status of Student: " + sID + " was successfully changed to: "
                                         + newStat + " on " + today);
                                 // Write in the ServerLog
-                                Timestamp timestampStatus= new Timestamp(System.currentTimeMillis());
-                                logMsg = timestampStatus + " | " + managerID + " edited the Status of "+ recordID + " from the " + serverName + " Server";
+                                Timestamp timestampStatus = new Timestamp(System.currentTimeMillis());
+                                logMsg = timestampStatus + " | " + managerID + " edited the Status of " + recordID + " from the " + serverName + " Server";
                                 serverLog.info(logMsg);
                                 clientLog(managerID, logMsg);
-                                confirmationMsg = logMsg;
+                                confirmationMsg = true;
                                 break;
                             case "STATUS DATE":
                                 String strPreviousDate = ((StudentRecord) tempRec).getStatusDate();
@@ -229,14 +233,14 @@ class HelloImpl extends HelloPOA {
                                 String strNewDate = ((StudentRecord) tempRec).getStatusDate();
                                 System.out.println("The new status date is: " + strNewDate);
                                 // Write in the ServerLog
-                                Timestamp timestampStatusDate= new Timestamp(System.currentTimeMillis());
-                                logMsg = timestampStatusDate + " | " + managerID + " edited the Status Date of "+ recordID + " from the " + serverName + " Server";
+                                Timestamp timestampStatusDate = new Timestamp(System.currentTimeMillis());
+                                logMsg = timestampStatusDate + " | " + managerID + " edited the Status Date of " + recordID + " from the " + serverName + " Server";
                                 serverLog.info(logMsg);
                                 clientLog(managerID, logMsg);
-                                confirmationMsg = logMsg;
+                                confirmationMsg = true;
                                 break;
                             default:
-                                confirmationMsg = "You tried to edit an invalid field, please try a valid one.";
+                                confirmationMsg = false;
                                 break;
                         }
                     }
@@ -253,10 +257,10 @@ class HelloImpl extends HelloPOA {
                                 System.out.println("The new address is: " + newAddress);
                                 // Write in the ServerLog
                                 Timestamp timestampAddress = new Timestamp(System.currentTimeMillis());
-                                logMsg = timestampAddress + " | " + managerID + " edited the Address of "+ recordID + " from the " + serverName + " Server";
+                                logMsg = timestampAddress + " | " + managerID + " edited the Address of " + recordID + " from the " + serverName + " Server";
                                 serverLog.info(logMsg);
                                 clientLog(managerID, logMsg);
-                                confirmationMsg = logMsg;
+                                confirmationMsg = true;
                                 break;
                             case "PHONE":
                                 String oldPhone = ((TeacherRecord) tempRec).getPhone();
@@ -266,10 +270,10 @@ class HelloImpl extends HelloPOA {
                                 System.out.println("The new phone number is: " + newPhone);
                                 // Write in the ServerLog
                                 Timestamp timestampPhone = new Timestamp(System.currentTimeMillis());
-                                logMsg = timestampPhone + " | " + managerID + " edited the Phone Number of "+ recordID + " from the " + serverName + " Server";
+                                logMsg = timestampPhone + " | " + managerID + " edited the Phone Number of " + recordID + " from the " + serverName + " Server";
                                 serverLog.info(logMsg);
                                 clientLog(managerID, logMsg);
-                                confirmationMsg = logMsg;
+                                confirmationMsg = true;
                                 break;
                             case "LOCATION":
                                 String oldLocation = ((TeacherRecord) tempRec).getLocation();
@@ -279,13 +283,13 @@ class HelloImpl extends HelloPOA {
                                 System.out.println("The new location is: " + newLocation);
                                 // Write in the ServerLog
                                 Timestamp timestampLocation = new Timestamp(System.currentTimeMillis());
-                                logMsg = timestampLocation + " | " + managerID + " edited the Phone Number of "+ recordID + " from the " + serverName + " Server";
+                                logMsg = timestampLocation + " | " + managerID + " edited the Phone Number of " + recordID + " from the " + serverName + " Server";
                                 serverLog.info(logMsg);
                                 clientLog(managerID, logMsg);
-                                confirmationMsg = logMsg;
+                                confirmationMsg = true;
                                 break;
                             default:
-                                confirmationMsg = "You tried to edit an invalid field, please try a valid one.";
+                                confirmationMsg = false;
                                 break;
                         }
                     }
@@ -299,10 +303,11 @@ class HelloImpl extends HelloPOA {
         return confirmationMsg;
     }
 
-    public synchronized String transferRecord(String managerID, String recordID, String remoteCenterServerName) {
+    public synchronized boolean transferRecord(String managerID, String recordID, String remoteCenterServerName) {
         String logMsg;
         String storageIndex = "";
-        String confirmationMsg = "Record ID not found."; // DEFAULT
+        boolean confirmationMsg = false; // DEFAULT
+        String clientMsg;
         String operation = "transfer" + managerID;
         Timestamp timestamp;
         for (String key : hmap.keySet()) {
@@ -318,37 +323,49 @@ class HelloImpl extends HelloPOA {
                         storageIndex = getFirstLetter(obj.getLastName());
                         switch (remoteCenterServerName) {
                             case "MTL":
-                                confirmationMsg = clientUDP(6789, operation);// mtl
+                                clientMsg = clientUDP(6789, operation);// mtl
+                                if (!clientMsg.equals("notFilled")) {
+                                    confirmationMsg = true;
+                                }
                                 tempAL.remove(tempRec);
                                 // Write in the ServerLog
                                 timestamp = new Timestamp(System.currentTimeMillis());
-                                logMsg = timestamp + " | " + managerID + " transferred the Record "+ recordID + " from the " + serverName + " Server"
-                                        + " to the " + remoteCenterServerName + " Server" ;
+                                logMsg = timestamp + " | " + managerID + " transferred the Record " + recordID + " from the " + serverName + " Server"
+                                        + " to the " + remoteCenterServerName + " Server";
                                 serverLog.info(logMsg);
                                 clientLog(managerID, logMsg);
-                                confirmationMsg = logMsg;
+                                //Changed because of the project architeture.
+                                //confirmationMsg = logMsg;
                                 break;
                             case "LVL":
-                                confirmationMsg = clientUDP(6788, operation);// lvl
+                                clientMsg = clientUDP(6788, operation);// lvl
+                                if (!clientMsg.equals("notFilled")) {
+                                    confirmationMsg = true;
+                                }
                                 tempAL.remove(tempRec);
                                 // Write in the ServerLog
                                 timestamp = new Timestamp(System.currentTimeMillis());
-                                logMsg = timestamp + " | " + managerID + " transferred the Record "+ recordID + " from the " + serverName + " Server"
-                                        + " to the " + remoteCenterServerName + " Server" ;
+                                logMsg = timestamp + " | " + managerID + " transferred the Record " + recordID + " from the " + serverName + " Server"
+                                        + " to the " + remoteCenterServerName + " Server";
                                 serverLog.info(logMsg);
                                 clientLog(managerID, logMsg);
-                                confirmationMsg = logMsg;
+                                //Changed because of the project architeture.
+                                //confirmationMsg = logMsg;
                                 break;
                             case "DDO":
-                                confirmationMsg = clientUDP(6787, operation);// ddo
+                                clientMsg = clientUDP(6787, operation);// ddo
+                                if (!clientMsg.equals("notFilled")) {
+                                    confirmationMsg = true;
+                                }
                                 tempAL.remove(tempRec);
                                 // Write in the ServerLog
                                 timestamp = new Timestamp(System.currentTimeMillis());
-                                logMsg = timestamp + " | " + managerID + " transferred the Record "+ recordID + " from the " + serverName + " Server"
-                                        + " to the " + remoteCenterServerName + " Server" ;
+                                logMsg = timestamp + " | " + managerID + " transferred the Record " + recordID + " from the " + serverName + " Server"
+                                        + " to the " + remoteCenterServerName + " Server";
                                 serverLog.info(logMsg);
                                 clientLog(managerID, logMsg);
-                                confirmationMsg = logMsg;
+                                //Changed because of the project architeture.
+                                //confirmationMsg = logMsg;
                                 break;
                         }
 
@@ -361,37 +378,49 @@ class HelloImpl extends HelloPOA {
                         storageIndex = getFirstLetter(obj.getLastName());
                         switch (remoteCenterServerName) {
                             case "MTL":
-                                confirmationMsg = clientUDP(6789, operation);// mtl
+                                clientMsg = clientUDP(6789, operation);// mtl
+                                if (!clientMsg.equals("notFilled")) {
+                                    confirmationMsg = true;
+                                }
                                 tempAL.remove(tempRec);
                                 // Write in the ServerLog
                                 timestamp = new Timestamp(System.currentTimeMillis());
-                                logMsg = timestamp + " | " + managerID + " transferred the Record "+ recordID + " from the " + serverName + " Server"
-                                        + " to the " + remoteCenterServerName + " Server" ;
+                                logMsg = timestamp + " | " + managerID + " transferred the Record " + recordID + " from the " + serverName + " Server"
+                                        + " to the " + remoteCenterServerName + " Server";
                                 serverLog.info(logMsg);
                                 clientLog(managerID, logMsg);
-                                confirmationMsg = logMsg;
+                                //Changed because of the project architeture.
+                                //confirmationMsg = logMsg;
                                 break;
                             case "LVL":
-                                confirmationMsg = clientUDP(6788, operation);// lvl
+                                clientMsg = clientUDP(6788, operation);// lvl
+                                if (!clientMsg.equals("notFilled")) {
+                                    confirmationMsg = true;
+                                }
                                 tempAL.remove(tempRec);
                                 // Write in the ServerLog
                                 timestamp = new Timestamp(System.currentTimeMillis());
-                                logMsg = timestamp + " | " + managerID + " transferred the Record "+ recordID + " from the " + serverName + " Server"
-                                        + " to the " + remoteCenterServerName + " Server" ;
+                                logMsg = timestamp + " | " + managerID + " transferred the Record " + recordID + " from the " + serverName + " Server"
+                                        + " to the " + remoteCenterServerName + " Server";
                                 serverLog.info(logMsg);
                                 clientLog(managerID, logMsg);
-                                confirmationMsg = logMsg;
+                                //Changed because of the project architeture.
+                                //confirmationMsg = logMsg;
                                 break;
                             case "DDO":
-                                confirmationMsg = clientUDP(6787, operation);// ddo
+                                clientMsg = clientUDP(6787, operation);// ddo
+                                if (!clientMsg.equals("notFilled")) {
+                                    confirmationMsg = true;
+                                }
                                 tempAL.remove(tempRec);
                                 // Write in the ServerLog
                                 timestamp = new Timestamp(System.currentTimeMillis());
-                                logMsg = timestamp + " | " + managerID + " transferred the Record "+ recordID + " from the " + serverName + " Server"
-                                        + " to the " + remoteCenterServerName + " Server" ;
+                                logMsg = timestamp + " | " + managerID + " transferred the Record " + recordID + " from the " + serverName + " Server"
+                                        + " to the " + remoteCenterServerName + " Server";
                                 serverLog.info(logMsg);
                                 clientLog(managerID, logMsg);
-                                confirmationMsg = logMsg;
+                                //Changed because of the project architeture.
+                                //confirmationMsg = logMsg;
                                 break;
                         }
 
@@ -642,15 +671,15 @@ class HelloImpl extends HelloPOA {
                         } else
                             spec = contentComponents[5].split("");
                         spec = fixArray(spec);
-                        createTRecord(contentComponents[0], contentComponents[1], contentComponents[2],
-                                contentComponents[3], contentComponents[4], spec, contentComponents[6]);
+                        insertTransferedSRecord(contentComponents[0], contentComponents[1], contentComponents[2], spec,
+                                contentComponents[4], contentComponents[5], contentComponents[6]);
                         strHMC = "Object Transfered";
                         hmc = strHMC.getBytes();
                     } else {
                         spec = contentComponents[3].split("\\,", -1);
                         spec = fixArray(spec);
-                        createSRecord(contentComponents[0], contentComponents[1], contentComponents[2], spec,
-                                contentComponents[4], contentComponents[5]);
+                        insertTransferedTRecord(contentComponents[0], contentComponents[1], contentComponents[2],
+                                contentComponents[3], contentComponents[4], spec, contentComponents[6], contentComponents[7]);
                         strHMC = "Object Transfered";
                         hmc = strHMC.getBytes();
                     }
@@ -678,13 +707,13 @@ class HelloImpl extends HelloPOA {
             StudentRecord studentRecord = (StudentRecord) obj;
             inf = managerID + "|" + studentRecord.getFirstName() + "|" + studentRecord.getLastName() + "|"
                     + studentRecord.getCourseRegistered() + "|" + studentRecord.getStatus() + "|"
-                    + studentRecord.getStatusDate();
+                    + studentRecord.getStatusDate() + "|" + studentRecord.getRecordID();
 
         } else if (obj.getRecordType() == Record.RECORD_TYPE.TEACHER) {
             TeacherRecord teacherRecord = (TeacherRecord) obj;
             inf = managerID + "|" + teacherRecord.getFirstName() + "|" + teacherRecord.getLastName() + "|"
                     + teacherRecord.getAdress() + "|" + teacherRecord.getPhone() + "|"
-                    + teacherRecord.getSpecalization() + "|" + teacherRecord.getLocation();
+                    + teacherRecord.getSpecalization() + "|" + teacherRecord.getLocation() + "|" + teacherRecord.getRecordID();
         }
         return inf;
     }
@@ -725,6 +754,70 @@ class HelloImpl extends HelloPOA {
             out.println(logMessage);
             out.close();
         }
+
+    }
+
+    public void insertTransferedTRecord(String managerID, String firstName, String lastName, String address,
+                                        String phone, String[] spec, String location, String recordID) {
+
+        ArrayList<String> specialization = new ArrayList<String>();
+        String storageIndex;
+        specialization = fixArrayT(spec);
+
+        // Instantiate a teacher record object
+        TeacherRecord teacherRecord = new TeacherRecord(firstName, lastName, address, phone, specialization, location);
+        teacherRecord.setRecordID(recordID);
+        // get teacher's last name first letter
+        storageIndex = getFirstLetter(teacherRecord.getLastName());
+        // insert the record object in the hashmap according to its first letter
+        insertHashmap(storageIndex, teacherRecord);
+        // for testing purpose
+        readHashMap(storageIndex);
+
+        // Write in the ServerLog
+        String operation = " created the teacher record ";
+        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        String msg = timestamp + " | " + managerID + operation + recordID + " on the " + serverName + " Server ";
+        //String id = recordID;
+        serverLog.info(msg);
+        clientLog(managerID, msg);
+        System.out.println("Teacher Record " + recordID + " was properly created & logged.");
+
+        //return id;
+
+    }
+
+    public void insertTransferedSRecord(String managerID, String firstName, String lastName, String[] cr, String status,
+                                        String statusDate, String recordID) {
+
+        ArrayList<String> courses = new ArrayList<String>();
+        String storageIndex;
+
+        courses = fixArrayS(cr);
+
+        // Instantiate a teacher record object
+        StudentRecord studentRecord = new StudentRecord(firstName, lastName, courses, status, statusDate);
+        studentRecord.setRecordID(recordID);
+        idGenerating++;
+        // get teacher's last name first letter
+        storageIndex = getFirstLetter(studentRecord.getLastName());
+        // insert the record object in the hashmap according to its first letter
+        insertHashmap(storageIndex, studentRecord);
+
+        // Write in the ServerLog
+        String operation = " created the student record ";
+        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        String msg = timestamp + " | " + managerID + operation + recordID + " on the " + serverName + " Server ";
+        //String id = recordID;
+        serverLog.info(msg);
+        clientLog(managerID, msg);
+        //Server Console
+        System.out.println("Student Record " + recordID + " was properly created & logged.");
+
+        // for testing purpose
+        readHashMap(storageIndex);
+
+        //return id;
 
     }
 }

@@ -1,11 +1,12 @@
+package HelloServers;
+
 import HelloApp.*;
 import org.omg.CosNaming.*;
 import org.omg.CORBA.*;
 import org.omg.PortableServer.*;
 import org.omg.PortableServer.POA;
 
-
-public class HelloServerLVL {
+public class HelloServerDDO {
 
 	public static void main(String args[]) {
 		try {
@@ -15,7 +16,7 @@ public class HelloServerLVL {
 			POA rootpoa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
 			rootpoa.the_POAManager().activate();
 			// create servant and register it with the ORB
-			HelloImpl helloImpl = new HelloImpl("LVL");
+			HelloImpl helloImpl = new HelloImpl("DDO");
 			helloImpl.setORB(orb);
 			// get object reference from the servant
 			org.omg.CORBA.Object ref = rootpoa.servant_to_reference(helloImpl);
@@ -27,18 +28,18 @@ public class HelloServerLVL {
 			// Naming Service (INS) specification.
 			NamingContextExt ncRef = NamingContextExtHelper.narrow(objRef);
 			// bind the Object Reference in Naming
-			String name = "LVL";
+			String name = "DDO";
 			NameComponent path[] = ncRef.to_name(name);
 			ncRef.rebind(path, href);
-			System.out.println("Laval Server is ready and waiting ...");
+			System.out.println("DDO Server is ready and waiting ...");
 			// start UDP server
-			helloImpl.serverUDP(6788);
+			helloImpl.serverUDP(6787);
 			// wait for invocations from clients
 			orb.run();
 		} catch (Exception e) {
 			System.err.println("ERROR: " + e);
 			e.printStackTrace(System.out);
 		}
-		System.out.println("Laval Server is Exiting ...");
+		System.out.println("Dollard-des-Ormeaux Server is Exiting ...");
 	}
 }

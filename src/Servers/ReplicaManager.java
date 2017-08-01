@@ -1,5 +1,10 @@
 package Servers;
 
+import DSassg2.ServerInterfaceHelper;
+import HelloApp.Hello;
+import HelloApp.HelloHelper;
+import HelloServers.HelloImpl;
+import ServersImpl.Server_Imp;
 import Utils.*;
 import org.omg.CORBA.DCMS;
 import org.omg.CORBA.DCMSHelper;
@@ -10,6 +15,7 @@ import org.omg.CosNaming.NamingContextExtHelper;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
@@ -25,51 +31,63 @@ public class ReplicaManager implements Runnable {
     private int fromFrontEndPort;
     private int toFrontEndPort;
     private int fromLeaderPort;
-    private int leaderPort;
+    private int fromBackupPort;
     private int heartBeatPort;
     private boolean isLeader;
+    private boolean status=true;
     private ORB orb;
     private org.omg.CORBA.Object namingContextObj;
     private NamingContextExt namingContextRef;
     private FIFO fifo;
     private Config.ARCHITECTURE.REPLICAS leaderID;
     private Map<Integer, Integer> acknowledgementMap;
+    private Election election;
 
     public ReplicaManager(Config.ARCHITECTURE.REPLICAS replicaManagerID) {
         try {
             this.replicaManagerID = replicaManagerID;
             this.acknowledgementMap = Collections.synchronizedMap(new HashMap<Integer, Integer>());
+            this.election = new Election(replicaManagerID); // A thread will start listening to election messages
+
             switch (replicaManagerID) {
                 case KEN_RO:
                     isLeader = false;
                     this.fromFrontEndPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getValue() * Config.UDP.PORT_FRONT_END_TO_LEADER;
                     this.toFrontEndPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getValue() * Config.UDP.PORT_LEADER_TO_FRONT_END;
                     this.fromLeaderPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getValue() * Config.UDP.PORT_LEADER_TO_BACKUPS;
-                    this.leaderPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getValue() * Config.UDP.PORT_BACKUPS_TO_LEADER;
+                    this.fromBackupPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getValue() * Config.UDP.PORT_BACKUPS_TO_LEADER;
                     this.heartBeatPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getValue() * Config.UDP.PORT_HEART_BEAT;
+//                    HeartBeat h1 = new HeartBeat(Config.ARCHITECTURE.REPLICAS.KEN_RO,Config.UDP.PORT_HEART_BEAT);
+//                    h1.start();
                     break;
                 case KAMAL:
                     isLeader = false;
                     this.fromFrontEndPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getValue() * Config.UDP.PORT_FRONT_END_TO_LEADER;
                     this.toFrontEndPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getValue() * Config.UDP.PORT_LEADER_TO_FRONT_END;
                     this.fromLeaderPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getValue() * Config.UDP.PORT_LEADER_TO_BACKUPS;
-                    this.leaderPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getValue() * Config.UDP.PORT_BACKUPS_TO_LEADER;
+                    this.fromBackupPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getValue() * Config.UDP.PORT_BACKUPS_TO_LEADER;
                     this.heartBeatPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getValue() * Config.UDP.PORT_HEART_BEAT;
+//                    HeartBeat h2=new HeartBeat(Config.ARCHITECTURE.REPLICAS.KAMAL,Config.UDP.PORT_HEART_BEAT);
+//                    h2.start();
                     break;
                 case MINH:
                     isLeader = true;
                     this.fromFrontEndPort = Config.ARCHITECTURE.REPLICAS.MINH.getValue() * Config.UDP.PORT_FRONT_END_TO_LEADER;
                     this.toFrontEndPort = Config.ARCHITECTURE.REPLICAS.MINH.getValue() * Config.UDP.PORT_LEADER_TO_FRONT_END;
                     this.fromLeaderPort = Config.ARCHITECTURE.REPLICAS.MINH.getValue() * Config.UDP.PORT_LEADER_TO_BACKUPS;
-                    this.leaderPort = Config.ARCHITECTURE.REPLICAS.MINH.getValue() * Config.UDP.PORT_BACKUPS_TO_LEADER;
+                    this.fromBackupPort = Config.ARCHITECTURE.REPLICAS.MINH.getValue() * Config.UDP.PORT_BACKUPS_TO_LEADER;
                     this.heartBeatPort = Config.ARCHITECTURE.REPLICAS.MINH.getValue() * Config.UDP.PORT_HEART_BEAT;
+//                    HeartBeat h3 = new HeartBeat(Config.ARCHITECTURE.REPLICAS.MINH,Config.UDP.PORT_HEART_BEAT);
+//                    h3.start();
                     break;
                 default:
                     // Do nothing
                     break;
             }
             fifo = new FIFO();
+
             prepareORB();
+
         } catch (Exception e) {
             e.printStackTrace(System.out);
         }
@@ -83,12 +101,10 @@ public class ReplicaManager implements Runnable {
                 startMinhReplica();
                 break;
             case KAMAL:
-//                startKamalReplica();
-                startMinhReplica();
+                startKamalReplica();
                 break;
             case KEN_RO:
-//                startKenroReplica();
-                startMinhReplica();
+                startKenroReplica();
                 break;
             default:
                 // Do nothing
@@ -221,9 +237,179 @@ public class ReplicaManager implements Runnable {
     }
 
     private void startKamalReplica() {
+        try {
+            ORB orb = ORB.init("-ORBInitialPort 1050 -ORBInitialHost localhost".split(" "), null);
+            // get reference to rootpoa & activate the POAManager
+            POA rootpoa = POAHelper.narrow(orb.resolve_initial_references("RootPOA"));
+            rootpoa.the_POAManager().activate();
+            // create servant and register it with the ORB
+
+            Server_Imp ms = new Server_Imp("MTL");
+            ms.setOrb(orb);
+            Server_Imp ds =new Server_Imp("DDO");
+            ds.setOrb(orb);
+            Server_Imp ls =new Server_Imp("LVL");
+            ls.setOrb(orb);
+
+            org.omg.CORBA.Object ref = rootpoa.servant_to_reference(ms);
+            org.omg.CORBA.Object ref1 = rootpoa.servant_to_reference(ds);
+            org.omg.CORBA.Object ref2 = rootpoa.servant_to_reference(ls);
+
+
+            DSassg2.ServerInterface montrealref = ServerInterfaceHelper.narrow(ref);
+            DSassg2.ServerInterface ddoref = ServerInterfaceHelper.narrow(ref1);
+            DSassg2.ServerInterface lavalref = ServerInterfaceHelper.narrow(ref2);
+
+            org.omg.CORBA.Object objRef = orb.resolve_initial_references("NameService");
+            NamingContextExt ncRef = NamingContextExtHelper.narrow(objRef);
+
+            NameComponent path[] = ncRef.to_name("Montreal");
+            ncRef.rebind(path, montrealref);
+            path = ncRef.to_name( "DDO" );
+            ncRef.rebind(path, ddoref);					//object ds is bind to Ddo reference
+            path = ncRef.to_name( "Laval" );
+            ncRef.rebind(path, lavalref);					//object ds is bind to Ddo reference
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        ms.UDPServer(ms.get_udp_port());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
+            System.out.println("Montreal Server statred...");
+            System.out.println("UDP Server started at port" + ms.get_udp_port());
+
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        ds.UDPServer(ds.get_udp_port());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
+            System.out.println(" DDO Server statred...");
+            System.out.println("UDP Server started at port"+ds.get_udp_port());
+
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        ls.UDPServer(ls.get_udp_port());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
+            System.out.println(" LVL Server statred...");
+            System.out.println("UDP Server started at port"+ls.get_udp_port());
+        }
+        catch(Exception e)
+        {
+            e.printStackTrace();
+        }
     }
 
     private void startKenroReplica() {
+        try {
+            // Initiate local ORB object
+            ORB orb = ORB.init(Config.CORBA.ORB_PARAMETERS.split(" "), null);
+
+            // Get reference to RootPOA and get POAManager
+            POA rootPOA = POAHelper.narrow(orb.resolve_initial_references(Config.CORBA.ROOT_POA));
+            rootPOA.the_POAManager().activate();
+
+            // create servant and register it with the ORB
+            HelloImpl helloImplMTL = new HelloImpl("MTL");
+            helloImplMTL.setORB(orb);
+            HelloImpl helloImplLVL = new HelloImpl("LVL");
+            helloImplLVL.setORB(orb);
+            HelloImpl helloImplDDO = new HelloImpl("DDO");
+            helloImplDDO.setORB(orb);
+
+            // get object reference from the servant
+            org.omg.CORBA.Object refMTL = rootPOA.servant_to_reference(helloImplMTL);
+            Hello hrefMTL = HelloHelper.narrow(refMTL);
+            org.omg.CORBA.Object refLVL = rootPOA.servant_to_reference(helloImplLVL);
+            Hello hrefLVL = HelloHelper.narrow(refLVL);
+            org.omg.CORBA.Object refDDO = rootPOA.servant_to_reference(helloImplDDO);
+            Hello hrefDDO = HelloHelper.narrow(refDDO);
+
+
+            // get the root naming context
+            // NameService invokes the name service
+            org.omg.CORBA.Object objRef = orb.resolve_initial_references(Config.CORBA.NAME_SERVICE);
+            // Use NamingContextExt which is part of the Interoperable
+            // Naming Service (INS) specification.
+            NamingContextExt ncRef = NamingContextExtHelper.narrow(objRef);
+
+            // bind the Object Reference in Naming
+            String nameMTL = "MTL";
+            String nameLVL = "LVL";
+            String nameDDO = "DDO";
+            NameComponent pathMTL[] = ncRef.to_name(nameMTL);
+            NameComponent pathLVL[] = ncRef.to_name(nameLVL);
+            NameComponent pathDDO[] = ncRef.to_name(nameDDO);
+            ncRef.rebind(pathMTL, hrefMTL);
+            ncRef.rebind(pathLVL, hrefLVL);
+            ncRef.rebind(pathDDO, hrefDDO);
+
+            System.out.println("MTL Server is ready and waiting ...");
+            System.out.println("LVL Server is ready and waiting ...");
+            System.out.println("DDO Server is ready and waiting ...");
+
+
+            // start UDP server
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        helloImplMTL.serverUDP(6789);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
+            System.out.println("ServerUDP MTL is running ...");
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        helloImplLVL.serverUDP(6788);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
+            System.out.println("ServerUDP LVL is running ...");
+
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        helloImplDDO.serverUDP(6787);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
+            System.out.println("ServerUDP DDO is running ...");
+
+            // wait for invocations from clients
+            orb.run();
+        } catch (Exception e) {
+            System.err.println("ERROR: " + e);
+            e.printStackTrace(System.out);
+        }
+
     }
 
     private void listenToFrontEnd() {
@@ -504,7 +690,7 @@ public class ReplicaManager implements Runnable {
         } catch (SocketException e) {
             e.printStackTrace();
         } finally {
-            if (unicast != null)
+            if (unicast != null && unicast.isSocketOpen())
                 unicast.closeSocket();
         }
     }
@@ -515,8 +701,7 @@ public class ReplicaManager implements Runnable {
             try {
                 byte[] buffer = new byte[50];
                 DatagramPacket acknowledgement = new DatagramPacket(buffer, buffer.length);
-                int listeningPort = replicaManagerID.getValue() * Config.UDP.PORT_BACKUPS_TO_LEADER;
-                socket = new DatagramSocket(listeningPort);
+                socket = new DatagramSocket(fromBackupPort);
                 socket.receive(acknowledgement);
                 new Thread(new Runnable() {
                     @Override
