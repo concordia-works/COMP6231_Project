@@ -1,5 +1,8 @@
 package Utils;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.io.Serializable;
 
 public class Response implements Serializable {
@@ -32,5 +35,12 @@ public class Response implements Serializable {
 
     public boolean isSuccess() {
         return isSuccess;
+    }
+
+    public byte[] serialize() throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        ObjectOutputStream os = new ObjectOutputStream(out);
+        os.writeObject(this);
+        return out.toByteArray();
     }
 }

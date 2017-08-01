@@ -41,13 +41,13 @@ public class CenterServer extends DCMSPOA {
         this.recordsMap = Collections.synchronizedMap(new HashMap<>());
         this.serverID = serverID;
         switch (serverID) {
-            case MTL:
+            case QM_MTL:
                 recordID = 0;
                 break;
-            case LVL:
+            case QM_LVL:
                 recordID = 1;
                 break;
-            case DDO:
+            case QM_DDO:
                 recordID = 2;
                 break;
         }
@@ -323,7 +323,7 @@ public class CenterServer extends DCMSPOA {
         DatagramSocket socket = null;
         try {
             socket = new DatagramSocket(this.udpPort);
-            LOGGER.info(String.format(Configuration.LOG_UDP_SERVER_START, this.udpPort));
+//            LOGGER.info(String.format(Configuration.LOG_UDP_SERVER_START, this.udpPort));
 
             while (true) {
                 // Get the request

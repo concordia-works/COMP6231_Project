@@ -15,19 +15,19 @@ public class Configuration {
     public static final String TEACHER_RECORD_FORMAT = "TR%05d";
 
     // Servers
-    public enum Server_ID {MTL, LVL, DDO}
+    public enum Server_ID { QM_MTL, QM_LVL, QM_DDO }
     public static final String MTL_SERVER_FORMAT = "MTL%04d";
     public static final String LVL_SERVER_FORMAT = "LVL%04d";
     public static final String DDO_SERVER_FORMAT = "DDO%04d";
     public static final String MONTREAL_HOSTNAME = "localhost";
     public static final String LAVAL_HOSTNAME = "localhost";
     public static final String DOLLARD_DES_ORMEAUX_HOSTNAME = "localhost";
-    public static final int MONTREAL_UDP_PORT = 1234;
-    public static final int LAVAL_UDP_PORT = 2345;
-    public static final int DOLLARD_DES_ORMEAUX_UDP_PORT = 3456;
-    public static final int MONTREAL_RMI_PORT = 4567;
-    public static final int LAVAL_RMI_PORT = 5678;
-    public static final int DOLLARD_DES_ORMEAUX_RMI_PORT = 6789;
+    public static final int MONTREAL_UDP_PORT = 2341;
+    public static final int LAVAL_UDP_PORT = 2342;
+    public static final int DOLLARD_DES_ORMEAUX_UDP_PORT = 2343;
+    public static final int MONTREAL_RMI_PORT = 2344;
+    public static final int LAVAL_RMI_PORT = 2345;
+    public static final int DOLLARD_DES_ORMEAUX_RMI_PORT = 2346;
     public static final String FUNC_GET_RECORDS_NUMBER = "getRecordsNumber";
     public static final String FUNC_TRANSFER_TEACHER_RECORD = "transferTRecord";
     public static final String FUNC_TRANSFER_STUDENT_RECORD = "transferSRecord";
@@ -81,11 +81,11 @@ public class Configuration {
 
     public static int getUDPPortByServerID(Server_ID server_id) {
         switch (server_id) {
-            case MTL:
+            case QM_MTL:
                 return MONTREAL_UDP_PORT;
-            case LVL:
+            case QM_LVL:
                 return LAVAL_UDP_PORT;
-            case DDO:
+            case QM_DDO:
                 return DOLLARD_DES_ORMEAUX_UDP_PORT;
             default:
                 return 0;
@@ -94,11 +94,11 @@ public class Configuration {
 
     public static int getRMIPortByServerID(Server_ID server_id) {
         switch (server_id) {
-            case MTL:
+            case QM_MTL:
                 return MONTREAL_RMI_PORT;
-            case LVL:
+            case QM_LVL:
                 return LAVAL_RMI_PORT;
-            case DDO:
+            case QM_DDO:
                 return DOLLARD_DES_ORMEAUX_RMI_PORT;
             default:
                 return 0;
@@ -107,11 +107,11 @@ public class Configuration {
 
     public static String getHostnameByServerID(Server_ID server_id) {
         switch (server_id) {
-            case MTL:
+            case QM_MTL:
                 return MONTREAL_HOSTNAME;
-            case LVL:
+            case QM_LVL:
                 return LAVAL_HOSTNAME;
-            case DDO:
+            case QM_DDO:
                 return DOLLARD_DES_ORMEAUX_HOSTNAME;
             default:
                 return "Wrong Server ID";
