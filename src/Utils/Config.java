@@ -1,7 +1,6 @@
 package Utils;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.ObjectInputStream;
 
 public class Config {
@@ -11,12 +10,16 @@ public class Config {
         public enum REPLICAS {
             KEN_RO(1), KAMAL(2), MINH(3);
 
-            private final int id;
-            REPLICAS(int id) { this.id = id; }
-            public int getValue() { return id; }
+            private final int coefficient;
+            REPLICAS(int coefficient) { this.coefficient = coefficient; }
+            public int getCoefficient() { return coefficient; }
         }
 
         public enum SERVER_ID {MTL, LVL, DDO}
+
+        public enum KAMAL_SERVER_ID {KM_MTL, KM_LVL, KM_DDO}
+
+        public enum KENRO_SERVER_ID {KR_MTL, KR_LVL, KR_DDO}
     }
 
     public static class REQUEST {
@@ -41,17 +44,27 @@ public class Config {
 
     public static class UDP {
         public static final int PORT_FRONT_END_TO_LEADER = 1231;
-        public static final int PORT_LEADER_TO_FRONT_END = 4561;
-        public static final int PORT_LEADER_TO_BACKUPS = 2341;
-        public static final int PORT_BACKUPS_TO_LEADER = 5671;
-        public static final int PORT_HEART_BEAT = 3451;
-        public static final int PORT_ELECTION = 6781;
+        public static final int PORT_LEADER_TO_FRONT_END = 1232;
+        public static final int PORT_LEADER_TO_BACKUPS = 1233;
+        public static final int PORT_BACKUPS_TO_LEADER = 1234;
+        public static final int PORT_HEART_BEAT = 1235;
+        public static final int PORT_ELECTION = 1236;
+        public static final int PORT_NEW_LEADER = 1237;
+
+        public static final int KENRO_UDP_MTL = 6789;
+        public static final int KENRO_UDP_LVL = 6788;
+        public static final int KENRO_UDP_DDO = 6787;
+    }
+
+    public static class FRONT_END {
+        public static final int COEFFICIENT = 10;
     }
 
     public static class ELECTION {
         public static final String MESSAGE = "Election message";
         public static final String RESPONSE = "Election response";
-        public static final int ANSWER_TIMEOUT = 3000;
+        public static final int ANSWER_TIMEOUT = 10;
+        public static final int ELECTION_TIMEOUT = 20;
     }
 
     public static class UI {
@@ -83,6 +96,8 @@ public class Config {
     public static class LOGGING {
         public static final String MANAGER_FILE_PATH = "/Users/quocminhvu/Documents/workspace/IdeaProjects/COMP6231_Assignment02/log/manager_%s.log";
         public static final String GET_RECORDS_COUNT = "%s get count %s";
+        public static final String SERVER_START = "RM %s: Server %s starts";
+        public static final String UDP_START = "RM %s - Server %s: UDP starts at port %s";
     }
 
     public static Request deserializeRequest(byte[] data) {

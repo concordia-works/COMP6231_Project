@@ -287,7 +287,7 @@
 //                DCMS dcmsServer = DCMSHelper.narrow(namingContextRef.resolve_str(serverID.name()));
 //                client.writeLog(managerID + " connect to server " + serverID.name() + " successfully");
 //
-//                String recordID = dcmsServer.createTRecord(managerID, "Trieu Nguyen", "Van", "sherbrooke", "123 784 5678", "information technology", "MTL");
+//                String recordID = dcmsServer.createTRecord(managerID, "Trieu Nguyen", "Van", "sherbrooke", "123 784 5678", "information technology", "QM_MTL");
 //                client.writeLog(recordID + " is created");
 //            } catch (IOException e) {
 //                e.printStackTrace();
@@ -311,7 +311,7 @@
 //                DCMS dcmsServer = DCMSHelper.narrow(namingContextRef.resolve_str(serverID.name()));
 //                client.writeLog(managerID + " connect to server " + serverID.name() + " successfully");
 //
-//                String recordID = dcmsServer.createTRecord(managerID, "Nguyen Gia", "Vo", "sir george williams", "432 964 1930", "architect", "MTL");
+//                String recordID = dcmsServer.createTRecord(managerID, "Nguyen Gia", "Vo", "sir george williams", "432 964 1930", "architect", "QM_MTL");
 //                client.writeLog(recordID + " is created");
 //            } catch (IOException e) {
 //                e.printStackTrace();
@@ -335,7 +335,7 @@
 //                DCMS dcmsServer = DCMSHelper.narrow(namingContextRef.resolve_str(serverID.name()));
 //                client.writeLog(managerID + " connect to server " + serverID.name() + " successfully");
 //
-//                String recordID = dcmsServer.createTRecord(managerID, "Mai Huong", "Van", "cavendish", "849 282 4567", "drawing", "MTL");
+//                String recordID = dcmsServer.createTRecord(managerID, "Mai Huong", "Van", "cavendish", "849 282 4567", "drawing", "QM_MTL");
 //                client.writeLog(recordID + " is created");
 //            } catch (IOException e) {
 //                e.printStackTrace();
@@ -359,7 +359,7 @@
 //                DCMS dcmsServer = DCMSHelper.narrow(namingContextRef.resolve_str(serverID.name()));
 //                client.writeLog(managerID + " connect to server " + serverID.name() + " successfully");
 //
-//                String recordID = dcmsServer.createTRecord(managerID, "Nguyen", "Vova", "mont royal", "514 234 9705", "electric", "MTL");
+//                String recordID = dcmsServer.createTRecord(managerID, "Nguyen", "Vova", "mont royal", "514 234 9705", "electric", "QM_MTL");
 //                client.writeLog(recordID + " is created");
 //            } catch (IOException e) {
 //                e.printStackTrace();
@@ -383,7 +383,7 @@
 //                DCMS dcmsServer = DCMSHelper.narrow(namingContextRef.resolve_str(serverID.name()));
 //                client.writeLog(managerID + " connect to server " + serverID.name() + " successfully");
 //
-//                String recordID = dcmsServer.createTRecord(managerID, "Nguyen Binh", "Vuon", "metcalfe", "125 765 3378", "chemistry", "MTL");
+//                String recordID = dcmsServer.createTRecord(managerID, "Nguyen Binh", "Vuon", "metcalfe", "125 765 3378", "chemistry", "QM_MTL");
 //                client.writeLog(recordID + " is created");
 //            } catch (IOException e) {
 //                e.printStackTrace();
@@ -442,11 +442,11 @@
 //                DCMS dcmsServer = DCMSHelper.narrow(namingContextRef.resolve_str(serverID.name()));
 ////                client.writeLog(managerID + " connect to server " + serverID.name() + " successfully");
 //
-//                boolean isSuccess = dcmsServer.transferRecord(managerID, recordID, "LVL");
+//                boolean isSuccess = dcmsServer.transferRecord(managerID, recordID, "QM_LVL");
 //                if (isSuccess)
-//                    client.writeLog(recordID + " transferred to LVL");
+//                    client.writeLog(recordID + " transferred to QM_LVL");
 //                else
-//                    client.writeLog(recordID + " failed to transfer to LVL ");
+//                    client.writeLog(recordID + " failed to transfer to QM_LVL ");
 //            } catch (IOException e) {
 //                e.printStackTrace();
 //            } catch (CannotProceed cannotProceed) {
@@ -526,11 +526,11 @@
 //                DCMS dcmsServer = DCMSHelper.narrow(namingContextRef.resolve_str(serverID.name()));
 ////                client.writeLog(managerID + " connect to server " + serverID.name() + " successfully");
 //
-//                boolean isSuccess = dcmsServer.transferRecord(managerID, recordID, "DDO");
+//                boolean isSuccess = dcmsServer.transferRecord(managerID, recordID, "QM_DDO");
 //                if (isSuccess)
-//                    client.writeLog(recordID + " transferred to DDO");
+//                    client.writeLog(recordID + " transferred to QM_DDO");
 //                else
-//                    client.writeLog(recordID + " failed to transfer to DDO");
+//                    client.writeLog(recordID + " failed to transfer to QM_DDO");
 //            } catch (IOException e) {
 //                e.printStackTrace();
 //            } catch (CannotProceed cannotProceed) {

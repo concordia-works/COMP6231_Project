@@ -283,7 +283,7 @@ public class ManagerClient {
                 FE frontEnd = FEHelper.narrow(namingContextRef.resolve_str(Config.CORBA.FRONT_END_NAME));
                 client.writeLog(managerID + " connect to Front-End successfully");
 
-                String recordID = frontEnd.createTRecord(managerID, "Trieu Nguyen", "Van", "sherbrooke", "123 784 5678", "information technology", "MTL");
+                String recordID = frontEnd.createTRecord(managerID, "Trieu Nguyen", "Van", "sherbrooke", "123 784 5678", "information technology", "QM_MTL");
                 client.writeLog(recordID + " is created");
             } catch (IOException e) {
                 e.printStackTrace();
@@ -306,7 +306,7 @@ public class ManagerClient {
                 FE frontEnd = FEHelper.narrow(namingContextRef.resolve_str(Config.CORBA.FRONT_END_NAME));
                 client.writeLog(managerID + " connect to Front-End successfully");
 
-                String recordID = frontEnd.createTRecord(managerID, "Nguyen Gia", "Vo", "sir george williams", "432 964 1930", "architect", "MTL");
+                String recordID = frontEnd.createTRecord(managerID, "Nguyen Gia", "Vo", "sir george williams", "432 964 1930", "architect", "QM_MTL");
                 client.writeLog(recordID + " is created");
             } catch (IOException e) {
                 e.printStackTrace();
@@ -329,7 +329,7 @@ public class ManagerClient {
                 FE frontEnd = FEHelper.narrow(namingContextRef.resolve_str(Config.CORBA.FRONT_END_NAME));
                 client.writeLog(managerID + " connect to Front-End successfully");
 
-                String recordID = frontEnd.createTRecord(managerID, "Mai Huong", "Van", "cavendish", "849 282 4567", "drawing", "MTL");
+                String recordID = frontEnd.createTRecord(managerID, "Mai Huong", "Van", "cavendish", "849 282 4567", "drawing", "QM_MTL");
                 client.writeLog(recordID + " is created");
             } catch (IOException e) {
                 e.printStackTrace();
@@ -352,7 +352,7 @@ public class ManagerClient {
                 FE frontEnd = FEHelper.narrow(namingContextRef.resolve_str(Config.CORBA.FRONT_END_NAME));
                 client.writeLog(managerID + " connect to Front-End successfully");
 
-                String recordID = frontEnd.createTRecord(managerID, "Nguyen", "Vova", "mont royal", "514 234 9705", "electric", "MTL");
+                String recordID = frontEnd.createTRecord(managerID, "Nguyen", "Vova", "mont royal", "514 234 9705", "electric", "QM_MTL");
                 client.writeLog(recordID + " is created");
             } catch (IOException e) {
                 e.printStackTrace();
@@ -375,7 +375,7 @@ public class ManagerClient {
                 FE frontEnd = FEHelper.narrow(namingContextRef.resolve_str(Config.CORBA.FRONT_END_NAME));
                 client.writeLog(managerID + " connect to Front-End successfully");
 
-                String recordID = frontEnd.createTRecord(managerID, "Nguyen Binh", "Vuon", "metcalfe", "125 765 3378", "chemistry", "MTL");
+                String recordID = frontEnd.createTRecord(managerID, "Nguyen Binh", "Vuon", "metcalfe", "125 765 3378", "chemistry", "QM_MTL");
                 client.writeLog(recordID + " is created");
             } catch (IOException e) {
                 e.printStackTrace();
@@ -427,7 +427,7 @@ public class ManagerClient {
                 // Pass the NameComponent to the NamingService to get the object, then narrow it to proper type
                 FE frontEnd = FEHelper.narrow(namingContextRef.resolve_str(Config.CORBA.FRONT_END_NAME));
 
-                String result = frontEnd.transferRecord(managerID, recordID, "LVL");
+                String result = frontEnd.transferRecord(managerID, recordID, "QM_LVL");
                 client.writeLog(result);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -496,7 +496,7 @@ public class ManagerClient {
                 // Pass the NameComponent to the NamingService to get the object, then narrow it to proper type
                 FE frontEnd = FEHelper.narrow(namingContextRef.resolve_str(Config.CORBA.FRONT_END_NAME));
 
-                String result = frontEnd.transferRecord(managerID, recordID, "DDO");
+                String result = frontEnd.transferRecord(managerID, recordID, "QM_DDO");
                 client.writeLog(result);
             } catch (IOException e) {
                 e.printStackTrace();
