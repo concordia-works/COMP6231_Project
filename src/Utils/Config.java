@@ -26,10 +26,10 @@ public class Config {
 
     public static class RESPONSE {
         public static final String RESPONSE_CONTENT = "Request %s is %s" + System.lineSeparator() + "%s";
-        public static final String CREATE_T_RECORD = "Record %s is created" + System.lineSeparator();
+        public static final String CREATE_T_RECORD = "ServersImpl.Record %s is created" + System.lineSeparator();
         public static final String CREATE_S_RECORD = "Student record %s is created" + System.lineSeparator();
-        public static final String EDIT_RECORD = "Record %s is edited" + System.lineSeparator();
-        public static final String TRANSFER_RECORD = "Record %s is transferred" + System.lineSeparator();
+        public static final String EDIT_RECORD = "ServersImpl.Record %s is edited" + System.lineSeparator();
+        public static final String TRANSFER_RECORD = "ServersImpl.Record %s is transferred" + System.lineSeparator();
     }
 
     public static class CORBA {
@@ -40,12 +40,12 @@ public class Config {
     }
 
     public static class UDP {
-        public static final int PORT_FRONT_END_TO_LEADER = 123;
-        public static final int PORT_LEADER_TO_FRONT_END = 456;
-        public static final int PORT_LEADER_TO_BACKUPS = 234;
-        public static final int PORT_BACKUPS_TO_LEADER = 567;
-        public static final int PORT_HEART_BEAT = 345;
-        public static final int PORT_ELECTION = 678;
+        public static final int PORT_FRONT_END_TO_LEADER = 1231;
+        public static final int PORT_LEADER_TO_FRONT_END = 4561;
+        public static final int PORT_LEADER_TO_BACKUPS = 2341;
+        public static final int PORT_BACKUPS_TO_LEADER = 5671;
+        public static final int PORT_HEART_BEAT = 3451;
+        public static final int PORT_ELECTION = 6781;
     }
 
     public static class ELECTION {

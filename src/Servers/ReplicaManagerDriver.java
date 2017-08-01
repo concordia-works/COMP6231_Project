@@ -8,9 +8,9 @@ public class ReplicaManagerDriver {
         Thread t1 = new Thread(kenroReplica);
         t1.start();
 
-//        ReplicaManager kamalReplica = new ReplicaManager(Config.ARCHITECTURE.REPLICAS.KAMAL);
-//        Thread t2 = new Thread(kamalReplica);
-//        t2.start();
+        ReplicaManager kamalReplica = new ReplicaManager(Config.ARCHITECTURE.REPLICAS.KAMAL);
+        Thread t2 = new Thread(kamalReplica);
+        t2.start();
 
         ReplicaManager minhReplica = new ReplicaManager(Config.ARCHITECTURE.REPLICAS.MINH);
         Thread t3 = new Thread(minhReplica);
