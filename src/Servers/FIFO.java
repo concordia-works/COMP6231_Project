@@ -40,6 +40,10 @@ public class FIFO {
     public void holdRequest(String managerID, Request request) {
         synchronized (holdbackRequestLock) {
             TreeMap<Integer, Request> holdbackQueue = holdbackRequest.get(managerID);
+            if (holdbackQueue == null) {
+                holdbackQueue = new TreeMap<>();
+                holdbackRequest.put(managerID, holdbackQueue);
+            }
             holdbackQueue.put(request.getSequenceNumber(), request);
         }
     }
@@ -54,8 +58,12 @@ public class FIFO {
     // Get the sequence number of the next request in the queue
     public int peekFirstRequestHoldNumber(String managerID) {
         synchronized (holdbackRequestLock) {
-            TreeMap<Integer, Request> holdbackQueue = holdbackRequest.get(managerID);
-            return holdbackQueue.firstKey();
+            try {
+                TreeMap<Integer, Request> holdbackQueue = holdbackRequest.get(managerID);
+                return holdbackQueue.firstKey();
+            } catch (NoSuchElementException e) {
+                return -1;
+            }
         }
     }
 
@@ -83,6 +91,10 @@ public class FIFO {
     public void holdResponse(String managerID, Response response) {
         synchronized (holdbackResponseLock) {
             TreeMap<Integer, Response> holdbackQueue = holdbackResponse.get(managerID);
+            if (holdbackQueue == null) {
+                holdbackQueue = new TreeMap<>();
+                holdbackResponse.put(managerID, holdbackQueue);
+            }
             holdbackQueue.put(response.getSequenceNumber(), response);
         }
     }
@@ -97,8 +109,12 @@ public class FIFO {
     // Get the sequence number of the next response in the queue
     public int peekFirstResponseHoldNumber(String managerID) {
         synchronized (holdbackResponseLock) {
-            TreeMap<Integer, Response> holdbackQueue = holdbackResponse.get(managerID);
-            return holdbackQueue.firstKey();
+            try {
+                TreeMap<Integer, Response> holdbackQueue = holdbackResponse.get(managerID);
+                return holdbackQueue.firstKey();
+            } catch (NoSuchElementException e) {
+                return -1;
+            }
         }
     }
 

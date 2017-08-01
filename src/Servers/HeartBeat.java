@@ -3,13 +3,9 @@ package Servers;
 
 import Utils.Config;
 
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.rmi.RemoteException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -17,9 +13,6 @@ import java.util.*;
 /**
  * Created by kamal on 7/28/2017.
  */
-import Utils.Config;
-import Servers.ReplicaManager;
-import Utils.Configuration;
 
 public class HeartBeat extends Thread {
     private Config.ARCHITECTURE.REPLICAS server_id;
@@ -31,13 +24,13 @@ public class HeartBeat extends Thread {
     {
         this.server_id = id;
         System.out.println(server_id);
-        this.heartbeat_port = id.getValue() *port_no;
+        this.heartbeat_port = id.getCoefficient() *port_no;
         System.out.println(heartbeat_port);
         status=true;
     }
 
     public int getHeartBeat_Port(Config.ARCHITECTURE.REPLICAS s_id) {
-        return s_id.getValue() *Config.UDP.PORT_HEART_BEAT;
+        return s_id.getCoefficient() *Config.UDP.PORT_HEART_BEAT;
     }
 
     public Config.ARCHITECTURE.REPLICAS getServer_id() {

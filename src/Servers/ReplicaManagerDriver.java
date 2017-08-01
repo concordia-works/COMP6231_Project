@@ -15,7 +15,5 @@ public class ReplicaManagerDriver {
         ReplicaManager minhReplica = new ReplicaManager(Config.ARCHITECTURE.REPLICAS.MINH);
         Thread t3 = new Thread(minhReplica);
         t3.start();
-
-        // Start the election
     }
 }
