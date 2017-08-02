@@ -1,4 +1,5 @@
 package Servers;
+
 //i am making hashmap status to store each servers status-true/false
 
 import Utils.Config;
