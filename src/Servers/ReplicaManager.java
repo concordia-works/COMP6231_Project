@@ -1,5 +1,10 @@
 package Servers;
 
+import DSassg2.ServerInterfaceHelper;
+import HelloApp.Hello;
+import HelloApp.HelloHelper;
+import HelloServers.HelloImpl;
+import ServersImpl.Server_Imp;
 import Utils.*;
 import org.omg.CORBA.DCMS;
 import org.omg.CORBA.DCMSHelper;
@@ -10,8 +15,10 @@ import org.omg.CosNaming.NamingContextExtHelper;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -27,52 +34,63 @@ public class ReplicaManager implements Runnable {
     private int fromLeaderPort;
     private int fromBackupPort;
     private int heartBeatPort;
-    private boolean isLeader;
     private ORB orb;
     private org.omg.CORBA.Object namingContextObj;
     private NamingContextExt namingContextRef;
     private FIFO fifo;
     private Config.ARCHITECTURE.REPLICAS leaderID;
     private Map<Integer, Integer> acknowledgementMap;
+    private static final Object acknowledgeLock = new Object();
     private Election election;
+    private Map<Integer, Integer> frontEndPortsMap; // to know the port that FrontEnd is using to wait for a response
+    private static final Object frontEndPortsLock = new Object();
 
     public ReplicaManager(Config.ARCHITECTURE.REPLICAS replicaManagerID) {
         try {
+            prepareORB();
             this.replicaManagerID = replicaManagerID;
             this.acknowledgementMap = Collections.synchronizedMap(new HashMap<Integer, Integer>());
-            this.election = new Election(replicaManagerID); // A thread will start listening to election messages
+            this.frontEndPortsMap = Collections.synchronizedMap(new HashMap<Integer, Integer>());
+            this.fifo = new FIFO();
 
             switch (replicaManagerID) {
                 case KEN_RO:
-                    isLeader = false;
-                    this.fromFrontEndPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getValue() * Config.UDP.PORT_FRONT_END_TO_LEADER;
-                    this.toFrontEndPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getValue() * Config.UDP.PORT_LEADER_TO_FRONT_END;
-                    this.fromLeaderPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getValue() * Config.UDP.PORT_LEADER_TO_BACKUPS;
-                    this.fromBackupPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getValue() * Config.UDP.PORT_BACKUPS_TO_LEADER;
-                    this.heartBeatPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getValue() * Config.UDP.PORT_HEART_BEAT;
+                    this.fromFrontEndPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getCoefficient() * Config.UDP.PORT_FRONT_END_TO_LEADER;
+//                    this.toFrontEndPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getCoefficient() * Config.UDP.PORT_LEADER_TO_FRONT_END;
+                    this.fromLeaderPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getCoefficient() * Config.UDP.PORT_LEADER_TO_BACKUPS;
+                    this.fromBackupPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getCoefficient() * Config.UDP.PORT_BACKUPS_TO_LEADER;
+                    this.heartBeatPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getCoefficient() * Config.UDP.PORT_HEART_BEAT;
+//                    HeartBeat h1 = new HeartBeat(Config.ARCHITECTURE.REPLICAS.KEN_RO,Config.UDP.PORT_HEART_BEAT);
+//                    h1.start();
                     break;
                 case KAMAL:
-                    isLeader = false;
-                    this.fromFrontEndPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getValue() * Config.UDP.PORT_FRONT_END_TO_LEADER;
-                    this.toFrontEndPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getValue() * Config.UDP.PORT_LEADER_TO_FRONT_END;
-                    this.fromLeaderPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getValue() * Config.UDP.PORT_LEADER_TO_BACKUPS;
-                    this.fromBackupPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getValue() * Config.UDP.PORT_BACKUPS_TO_LEADER;
-                    this.heartBeatPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getValue() * Config.UDP.PORT_HEART_BEAT;
+                    this.fromFrontEndPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getCoefficient() * Config.UDP.PORT_FRONT_END_TO_LEADER;
+//                    this.toFrontEndPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getCoefficient() * Config.UDP.PORT_LEADER_TO_FRONT_END;
+                    this.fromLeaderPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getCoefficient() * Config.UDP.PORT_LEADER_TO_BACKUPS;
+                    this.fromBackupPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getCoefficient() * Config.UDP.PORT_BACKUPS_TO_LEADER;
+                    this.heartBeatPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getCoefficient() * Config.UDP.PORT_HEART_BEAT;
+//                    HeartBeat h2=new HeartBeat(Config.ARCHITECTURE.REPLICAS.KAMAL,Config.UDP.PORT_HEART_BEAT);
+//                    h2.start();
                     break;
                 case MINH:
-                    isLeader = true;
-                    this.fromFrontEndPort = Config.ARCHITECTURE.REPLICAS.MINH.getValue() * Config.UDP.PORT_FRONT_END_TO_LEADER;
-                    this.toFrontEndPort = Config.ARCHITECTURE.REPLICAS.MINH.getValue() * Config.UDP.PORT_LEADER_TO_FRONT_END;
-                    this.fromLeaderPort = Config.ARCHITECTURE.REPLICAS.MINH.getValue() * Config.UDP.PORT_LEADER_TO_BACKUPS;
-                    this.fromBackupPort = Config.ARCHITECTURE.REPLICAS.MINH.getValue() * Config.UDP.PORT_BACKUPS_TO_LEADER;
-                    this.heartBeatPort = Config.ARCHITECTURE.REPLICAS.MINH.getValue() * Config.UDP.PORT_HEART_BEAT;
+                    this.fromFrontEndPort = Config.ARCHITECTURE.REPLICAS.MINH.getCoefficient() * Config.UDP.PORT_FRONT_END_TO_LEADER;
+//                    this.toFrontEndPort = Config.ARCHITECTURE.REPLICAS.MINH.getCoefficient() * Config.UDP.PORT_LEADER_TO_FRONT_END;
+                    this.fromLeaderPort = Config.ARCHITECTURE.REPLICAS.MINH.getCoefficient() * Config.UDP.PORT_LEADER_TO_BACKUPS;
+                    this.fromBackupPort = Config.ARCHITECTURE.REPLICAS.MINH.getCoefficient() * Config.UDP.PORT_BACKUPS_TO_LEADER;
+                    this.heartBeatPort = Config.ARCHITECTURE.REPLICAS.MINH.getCoefficient() * Config.UDP.PORT_HEART_BEAT;
+//                    HeartBeat h3 = new HeartBeat(Config.ARCHITECTURE.REPLICAS.MINH,Config.UDP.PORT_HEART_BEAT);
+//                    h3.start();
                     break;
                 default:
                     // Do nothing
                     break;
             }
-            fifo = new FIFO();
-            prepareORB();
+
+            new Thread(() -> listenNewLeader()).start();
+
+            // When a new Replica Manager starts, it will raise a new election
+            this.election = new Election(replicaManagerID);
+            new Thread(this.election).start();
         } catch (Exception e) {
             e.printStackTrace(System.out);
         }
@@ -86,71 +104,20 @@ public class ReplicaManager implements Runnable {
                 startMinhReplica();
                 break;
             case KAMAL:
-//                startKamalReplica();
-                startMinhReplica();
+                startKamalReplica();
                 break;
             case KEN_RO:
-//                startKenroReplica();
-                startMinhReplica();
+                startKenroReplica();
                 break;
             default:
                 // Do nothing
                 break;
-        }
-
-        if (isLeader) {
-            // If this is leader, listen to FrontEndImpl
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    listenToFrontEnd();
-                }
-            }).start();
-
-            // and to Backups
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    listenToAcknowledgements();
-                }
-            }).start();
-        } else { // If this is backup, listen to Leader
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    listenToLeader();
-                }
-            }).start();
         }
     }
 
     // Getters & Setters
     public Config.ARCHITECTURE.REPLICAS getReplicaManagerID() {
         return replicaManagerID;
-    }
-
-    public int getFromFrontEndPort() {
-        return fromFrontEndPort;
-    }
-
-    public int getFromLeaderPort() {
-        return fromLeaderPort;
-    }
-
-    public int getHeartBeatPort() {
-        return heartBeatPort;
-    }
-
-    public boolean isLeader() {
-        return isLeader;
-    }
-
-    public void setLeader(boolean leader) {
-        isLeader = leader;
-    }
-
-    public void updateLeaderInfo(Config.ARCHITECTURE.REPLICAS newLeaderID) {
-        this.leaderID = newLeaderID;
     }
 
     //Helper functions
@@ -164,11 +131,11 @@ public class ReplicaManager implements Runnable {
             rootPOA.the_POAManager().activate();
 
             // Create servant and register it with the ORB
-            CenterServer mtlServer = new CenterServer(Configuration.Server_ID.MTL);
+            CenterServer mtlServer = new CenterServer(Configuration.Server_ID.QM_MTL);
             mtlServer.setORB(orb);
-            CenterServer lvlServer = new CenterServer(Configuration.Server_ID.LVL);
+            CenterServer lvlServer = new CenterServer(Configuration.Server_ID.QM_LVL);
             lvlServer.setORB(orb);
-            CenterServer ddoServer = new CenterServer(Configuration.Server_ID.DDO);
+            CenterServer ddoServer = new CenterServer(Configuration.Server_ID.QM_DDO);
             ddoServer.setORB(orb);
 
             // Get object reference from the servant
@@ -184,38 +151,33 @@ public class ReplicaManager implements Runnable {
             NamingContextExt namingContextRef = NamingContextExtHelper.narrow(objRef);
 
             // Bind the object reference to the Naming Context
-            NameComponent path[] = namingContextRef.to_name(Configuration.Server_ID.MTL.name());
+            NameComponent path[] = namingContextRef.to_name(Configuration.Server_ID.QM_MTL.name());
             namingContextRef.rebind(path, mtlDcmsServer);
-            path = namingContextRef.to_name(Configuration.Server_ID.LVL.name());
+            path = namingContextRef.to_name(Configuration.Server_ID.QM_LVL.name());
             namingContextRef.rebind(path, mtlDcmsServer);
-            path = namingContextRef.to_name(Configuration.Server_ID.DDO.name());
+            path = namingContextRef.to_name(Configuration.Server_ID.QM_DDO.name());
             namingContextRef.rebind(path, mtlDcmsServer);
 
             // Run the server
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    mtlDcmsServer.startUDPServer();
-                }
+            new Thread(() -> {
+                mtlDcmsServer.startUDPServer();
+//                    System.out.println(String.format(Config.LOGGING.UDP_START, Config.ARCHITECTURE.REPLICAS.MINH.name(), Config.ARCHITECTURE.SERVER_ID.QM_MTL.name(), Configuration.getUDPPortByServerID(Configuration.Server_ID.QM_MTL)));
             }).start();
-            System.out.println("Server " + Configuration.Server_ID.MTL.name() + " is running ...");
+//            System.out.println(String.format(Config.LOGGING.SERVER_START, Config.ARCHITECTURE.REPLICAS.MINH.name(), Config.ARCHITECTURE.SERVER_ID.QM_MTL.name()));
 
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    lvlDcmsServer.startUDPServer();
-                }
+            new Thread(() -> {
+                lvlDcmsServer.startUDPServer();
+//                    System.out.println(String.format(Config.LOGGING.UDP_START, Config.ARCHITECTURE.REPLICAS.MINH.name(), Config.ARCHITECTURE.SERVER_ID.QM_LVL.name(), Configuration.getUDPPortByServerID(Configuration.Server_ID.QM_LVL)));
             }).start();
-            System.out.println("Server " + Configuration.Server_ID.LVL.name() + " is running ...");
+//            System.out.println(String.format(Config.LOGGING.SERVER_START, Config.ARCHITECTURE.REPLICAS.MINH.name(), Config.ARCHITECTURE.SERVER_ID.QM_LVL.name()));
 
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    ddoDcmsServer.startUDPServer();
-                }
+            new Thread(() -> {
+                ddoDcmsServer.startUDPServer();
+//                    System.out.println(String.format(Config.LOGGING.UDP_START, Config.ARCHITECTURE.REPLICAS.MINH.name(), Config.ARCHITECTURE.SERVER_ID.QM_DDO.name(), Configuration.getUDPPortByServerID(Configuration.Server_ID.QM_DDO)));
             }).start();
-            System.out.println("Server " + Configuration.Server_ID.DDO.name() + " is running ...");
+//            System.out.println(String.format(Config.LOGGING.SERVER_START, Config.ARCHITECTURE.REPLICAS.MINH.name(), Config.ARCHITECTURE.SERVER_ID.QM_DDO.name()));
 
+            startListening();
             orb.run();
         } catch (Exception e) {
             System.out.println("ERROR: " + e);
@@ -224,6 +186,71 @@ public class ReplicaManager implements Runnable {
     }
 
     private void startKamalReplica() {
+        try {
+            ORB orb = ORB.init(Config.CORBA.ORB_PARAMETERS.split(" "), null);
+            POA rootPOA = POAHelper.narrow(orb.resolve_initial_references(Config.CORBA.ROOT_POA));
+            rootPOA.the_POAManager().activate();
+
+            Server_Imp mtlServer = new Server_Imp(Config.ARCHITECTURE.KAMAL_SERVER_ID.KM_MTL.name());
+            mtlServer.setOrb(orb);
+            Server_Imp lvlServer = new Server_Imp(Config.ARCHITECTURE.KAMAL_SERVER_ID.KM_LVL.name());
+            lvlServer.setOrb(orb);
+            Server_Imp ddoServer = new Server_Imp(Config.ARCHITECTURE.KAMAL_SERVER_ID.KM_DDO.name());
+            ddoServer.setOrb(orb);
+
+            org.omg.CORBA.Object mtlObj = rootPOA.servant_to_reference(mtlServer);
+            org.omg.CORBA.Object lvlObj = rootPOA.servant_to_reference(lvlServer);
+            org.omg.CORBA.Object ddoObj = rootPOA.servant_to_reference(ddoServer);
+
+            DSassg2.ServerInterface mtlRef = ServerInterfaceHelper.narrow(mtlObj);
+            DSassg2.ServerInterface lvlRef = ServerInterfaceHelper.narrow(lvlObj);
+            DSassg2.ServerInterface ddoRef = ServerInterfaceHelper.narrow(ddoObj);
+
+            org.omg.CORBA.Object objRef = orb.resolve_initial_references(Config.CORBA.NAME_SERVICE);
+            NamingContextExt ncRef = NamingContextExtHelper.narrow(objRef);
+
+            NameComponent path[] = ncRef.to_name(Config.ARCHITECTURE.KAMAL_SERVER_ID.KM_MTL.name());
+            ncRef.rebind(path, mtlRef);
+            path = ncRef.to_name(Config.ARCHITECTURE.KAMAL_SERVER_ID.KM_LVL.name());
+            ncRef.rebind(path, lvlRef);
+            path = ncRef.to_name(Config.ARCHITECTURE.KAMAL_SERVER_ID.KM_DDO.name());
+            ncRef.rebind(path, ddoRef);
+
+            new Thread(() -> {
+                try {
+                    mtlServer.UDPServer(mtlServer.get_udp_port());
+//                        System.out.println(String.format(Config.LOGGING.UDP_START, Config.ARCHITECTURE.REPLICAS.KAMAL.name(), Config.ARCHITECTURE.SERVER_ID.QM_MTL.name(), mtlServer.get_udp_port()));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+//            System.out.println(String.format(Config.LOGGING.SERVER_START, Config.ARCHITECTURE.REPLICAS.KAMAL.name(), Config.ARCHITECTURE.SERVER_ID.QM_MTL.name()));
+
+            new Thread(() -> {
+                try {
+                    lvlServer.UDPServer(lvlServer.get_udp_port());
+//                        System.out.println(String.format(Config.LOGGING.UDP_START, Config.ARCHITECTURE.REPLICAS.KAMAL.name(), Config.ARCHITECTURE.SERVER_ID.QM_LVL.name(), lvlServer.get_udp_port()));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+//            System.out.println(String.format(Config.LOGGING.SERVER_START, Config.ARCHITECTURE.REPLICAS.KAMAL.name(), Config.ARCHITECTURE.SERVER_ID.QM_LVL.name()));
+
+            new Thread(() -> {
+                try {
+                    ddoServer.UDPServer(ddoServer.get_udp_port());
+//                        System.out.println(String.format(Config.LOGGING.UDP_START, Config.ARCHITECTURE.REPLICAS.KAMAL.name(), Config.ARCHITECTURE.SERVER_ID.QM_DDO.name(), ddoServer.get_udp_port()));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+//            System.out.println(String.format(Config.LOGGING.SERVER_START, Config.ARCHITECTURE.REPLICAS.KAMAL.name(), Config.ARCHITECTURE.SERVER_ID.QM_DDO.name()));
+
+            startListening();
+            orb.run();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void startKenroReplica() {
@@ -236,19 +263,19 @@ public class ReplicaManager implements Runnable {
             rootPOA.the_POAManager().activate();
 
             // create servant and register it with the ORB
-            HelloImpl helloImplMTL = new HelloImpl("DDO");
+            HelloImpl helloImplMTL = new HelloImpl(Config.ARCHITECTURE.KENRO_SERVER_ID.KR_MTL.name());
             helloImplMTL.setORB(orb);
-            HelloImpl helloImplLVL = new HelloImpl("DDO");
+            HelloImpl helloImplLVL = new HelloImpl(Config.ARCHITECTURE.KENRO_SERVER_ID.KR_LVL.name());
             helloImplLVL.setORB(orb);
-            HelloImpl helloImplDDO = new HelloImpl("DDO");
+            HelloImpl helloImplDDO = new HelloImpl(Config.ARCHITECTURE.KENRO_SERVER_ID.KR_DDO.name());
             helloImplDDO.setORB(orb);
 
             // get object reference from the servant
-            org.omg.CORBA.Object refMTL = rootpoa.servant_to_reference(helloImplMTL);
+            org.omg.CORBA.Object refMTL = rootPOA.servant_to_reference(helloImplMTL);
             Hello hrefMTL = HelloHelper.narrow(refMTL);
-            org.omg.CORBA.Object refLVL = rootpoa.servant_to_reference(helloImplLVL);
+            org.omg.CORBA.Object refLVL = rootPOA.servant_to_reference(helloImplLVL);
             Hello hrefLVL = HelloHelper.narrow(refLVL);
-            org.omg.CORBA.Object refDDO = rootpoa.servant_to_reference(helloImplDDO);
+            org.omg.CORBA.Object refDDO = rootPOA.servant_to_reference(helloImplDDO);
             Hello hrefDDO = HelloHelper.narrow(refDDO);
 
 
@@ -260,51 +287,48 @@ public class ReplicaManager implements Runnable {
             NamingContextExt ncRef = NamingContextExtHelper.narrow(objRef);
 
             // bind the Object Reference in Naming
-            String nameMTL = "MTL";
-            String nameLVL = "LVL";
-            String nameDDO = "DDO";
-            NameComponent pathMTL[] = ncRef.to_name(nameMTL);
-            NameComponent pathLVL[] = ncRef.to_name(nameLVL);
-            NameComponent pathDDO[] = ncRef.to_name(nameDDO);
-            ncRef.rebind(pathMTL, href);
-            ncRef.rebind(pathLVL, href);
-            ncRef.rebind(pathDDO, href);
-
-            System.out.println("MTL Server is ready and waiting ...");
-            System.out.println("LVL Server is ready and waiting ...");
-            System.out.println("DDO Server is ready and waiting ...");
-
+            NameComponent pathMTL[] = ncRef.to_name(Config.ARCHITECTURE.KENRO_SERVER_ID.KR_MTL.name());
+            NameComponent pathLVL[] = ncRef.to_name(Config.ARCHITECTURE.KENRO_SERVER_ID.KR_LVL.name());
+            NameComponent pathDDO[] = ncRef.to_name(Config.ARCHITECTURE.KENRO_SERVER_ID.KR_DDO.name());
+            ncRef.rebind(pathMTL, hrefMTL);
+            ncRef.rebind(pathLVL, hrefLVL);
+            ncRef.rebind(pathDDO, hrefDDO);
 
             // start UDP server
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    helloImpl.serverUDP(6789);
+            new Thread(() -> {
+                try {
+                    helloImplMTL.serverUDP(Config.UDP.KENRO_UDP_MTL);
+//                        System.out.println(String.format(Config.LOGGING.UDP_START, Config.ARCHITECTURE.REPLICAS.KEN_RO.name(), Config.ARCHITECTURE.SERVER_ID.QM_MTL.name(), Config.UDP.KENRO_UDP_MTL));
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }).start();
-            System.out.println("ServerUDP MTL is running ...");
+//            System.out.println(String.format(Config.LOGGING.SERVER_START, Config.ARCHITECTURE.REPLICAS.KEN_RO.name(), Config.ARCHITECTURE.SERVER_ID.QM_MTL.name()));
 
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    helloImpl.serverUDP(6788);
+            new Thread(() -> {
+                try {
+                    helloImplLVL.serverUDP(Config.UDP.KENRO_UDP_LVL);
+//                        System.out.println(String.format(Config.LOGGING.UDP_START, Config.ARCHITECTURE.REPLICAS.KEN_RO.name(), Config.ARCHITECTURE.SERVER_ID.QM_LVL.name(), Config.UDP.KENRO_UDP_LVL));
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }).start();
-            System.out.println("ServerUDP LVL is running ...");
+//            System.out.println(String.format(Config.LOGGING.SERVER_START, Config.ARCHITECTURE.REPLICAS.KEN_RO.name(), Config.ARCHITECTURE.SERVER_ID.QM_LVL.name()));
 
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    helloImpl.serverUDP(6787);
+            new Thread(() -> {
+                try {
+                    helloImplDDO.serverUDP(Config.UDP.KENRO_UDP_DDO);
+//                        System.out.println(String.format(Config.LOGGING.UDP_START, Config.ARCHITECTURE.REPLICAS.KEN_RO.name(), Config.ARCHITECTURE.SERVER_ID.QM_DDO.name(), Config.UDP.KENRO_UDP_DDO));
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }).start();
-            System.out.println("ServerUDP DDO is running ...");
+//            System.out.println(String.format(Config.LOGGING.SERVER_START, Config.ARCHITECTURE.REPLICAS.KEN_RO.name(), Config.ARCHITECTURE.SERVER_ID.QM_DDO.name()));
 
-            // wait for invocations from clients
+            startListening();
             orb.run();
         } catch (Exception e) {
-            System.err.println("ERROR: " + e);
-            e.printStackTrace(System.out);
+            e.printStackTrace(System.err);
         }
 
     }
@@ -312,6 +336,7 @@ public class ReplicaManager implements Runnable {
     private void listenToFrontEnd() {
         DatagramSocket fromFrontEndSocket = null;
         try {
+//            System.out.println(replicaManagerID.name() + " listen to FrontEnd at port " + fromFrontEndPort);
             fromFrontEndSocket = new DatagramSocket(fromFrontEndPort);
 
             while (true) {
@@ -322,64 +347,69 @@ public class ReplicaManager implements Runnable {
                 fromFrontEndSocket.receive(requestPacket);
 
                 // Each request will be handled by a thread to improve performance
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        // Rebuild the request object
-                        Request request = Config.deserializeRequest(requestPacket.getData());
-                        String managerID = request.getManagerID();
-                        Response response;
-                        if (request.getSequenceNumber() == fifo.getExpectedRequestNumber(managerID)) { // This request is the one expected
-                            // Add the request to the queue, so it can be executed in the next step
-                            fifo.holdRequest(managerID, request);
+                new Thread(() -> {
+                    // Rebuild the request object
+                    Request request = Config.deserializeRequest(requestPacket.getData());
+                    System.out.println(replicaManagerID.name() + " receives " + request.getSequenceNumber() + " " + request.getFullInvocation() + " from FrontEnd");
 
-                            // Execute this request and the continuous chain of requests after it hold in the queue
-                            while (true) {
-                                Request currentRequest = fifo.popNextRequest(managerID);
-
-                                // Increase the expected sequence number by 1
-                                fifo.generateRequestNumber(managerID);
-
-                                // Handle the request
-                                response = executeRequest(currentRequest);
-
-                                /**
-                                 * Only broadcast requests if the leader executes the request successfully
-                                 * If the leader succeeds, the response to client will be successful
-                                 * As long as a RM can proceed the request, clients still get the successful result
-                                 * Leader waits for acknowledgements from both backups then answers FrontEndImpl
-                                 */
-                                // Send the result to backups & wait for acknowledgements
-                                if (response.isSuccess()) {
-                                    // Broadcast using FIFO multicast
-                                    broadcastToGroup(currentRequest);
-
-                                    // Check backups' acknowledgement
-                                    waitForEnoughAcknowledgement(currentRequest);
-                                }
-
-                                // Response to FrontEndImpl
-                                responseToFrontEnd(response);
-
-                                // If the next request on hold doesn't have the expected sequence number, the loop will end
-                                if (fifo.peekFirstRequestHoldNumber(managerID) != fifo.getExpectedRequestNumber(managerID))
-                                    break;
-                            }
-                        } else if (request.getSequenceNumber() > fifo.getExpectedRequestNumber(managerID)) { // There're other requests must come before this request
-                            // Save the request to the holdback queue
-                            fifo.holdRequest(managerID, request);
-
-                            /**
-                             * How to take care of the situation
-                             * When the request is put to the queue
-                             * But will never be execute until a new request is sent???
-                             */
-                        } // Else the request is duplicated, ignore it
+                    synchronized (frontEndPortsLock) {
+                        frontEndPortsMap.put(request.getSequenceNumber(), requestPacket.getPort());
                     }
+
+                    String managerID = request.getManagerID();
+                    Response response;
+                    if (request.getSequenceNumber() == fifo.getExpectedRequestNumber(managerID)) { // This request is the one expected
+                        // Add the request to the queue, so it can be executed in the next step
+                        fifo.holdRequest(managerID, request);
+
+                        // Execute this request and the continuous chain of requests after it hold in the queue
+                        while (true) {
+                            Request currentRequest = fifo.popNextRequest(managerID);
+
+                            // Increase the expected sequence number by 1
+                            fifo.generateRequestNumber(managerID);
+
+                            // Handle the request
+                            response = executeRequest(currentRequest);
+                            System.out.println(replicaManagerID.name() + " executes " + request.getSequenceNumber() + " " + request.getFullInvocation());
+                            /**
+                             * Only broadcast requests if the leader executes the request successfully
+                             * If the leader succeeds, the response to client will be successful
+                             * As long as a RM can proceed the request, clients still get the successful result
+                             * Leader waits for acknowledgements from both backups then answers FrontEndImpl
+                             */
+                            // Send the result to backups & wait for acknowledgements
+                            if (response.isSuccess()) {
+                                // Broadcast using FIFO multicast
+                                broadcastToGroup(currentRequest);
+                                System.out.println(replicaManagerID.name() + " broadcasts " + request.getSequenceNumber() + " " + request.getFullInvocation());
+
+                                // Check backups' acknowledgement
+                                waitForEnoughAcknowledgement(currentRequest);
+                                System.out.println(replicaManagerID.name() + " receives all acknowledgements of " + request.getSequenceNumber() + " " + request.getFullInvocation());
+                            }
+
+                            // Response to FrontEndImpl
+                            responseToFrontEnd(response);
+
+                            // If the next request on hold doesn't have the expected sequence number, the loop will end
+                            if (fifo.peekFirstRequestHoldNumber(managerID) != fifo.getExpectedRequestNumber(managerID))
+                                break;
+                        }
+                    } else if (request.getSequenceNumber() > fifo.getExpectedRequestNumber(managerID)) { // There're other requests must come before this request
+                        // Save the request to the holdback queue
+                        fifo.holdRequest(managerID, request);
+
+                        /**
+                         * How to take care of the situation
+                         * When the request is put to the queue
+                         * But will never be execute until a new request is sent???
+                         */
+                    } // Else the request is duplicated, ignore it
                 }).start();
             }
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            e.printStackTrace(System.err);
         } finally {
             if (fromFrontEndSocket != null)
                 fromFrontEndSocket.close();
@@ -389,10 +419,11 @@ public class ReplicaManager implements Runnable {
     private void responseToFrontEnd(Response response) {
         DatagramSocket toFrontEndSocket = null;
         try {
-            toFrontEndSocket = new DatagramSocket(toFrontEndPort);
+            toFrontEndSocket = new DatagramSocket();
             String managerID = response.getManagerID();
 
-            if (response.getSequenceNumber() == fifo.getExpectedResponseNumber(managerID)) { // This response is the one expected
+            // This response is the one expected
+            if (response.getSequenceNumber() == fifo.getExpectedResponseNumber(managerID)) {
                 // Add the response to the queue, so it can be forwarded in the next step
                 fifo.holdResponse(managerID, response);
 
@@ -404,12 +435,23 @@ public class ReplicaManager implements Runnable {
                     fifo.generateResponseNumber(managerID);
 
                     // Forward the response using FIFO's reliable unicast
+                    int portFrontEnd;
+                    synchronized (frontEndPortsLock) {
+                        portFrontEnd = frontEndPortsMap.get(currentResponse.getSequenceNumber());
+                        frontEndPortsMap.remove(currentResponse.getSequenceNumber());
+                    }
+                    byte[] buffer = currentResponse.serialize();
+                    DatagramPacket responsePacket = new DatagramPacket(buffer, buffer.length, InetAddress.getLocalHost(), portFrontEnd);
+                    toFrontEndSocket.send(responsePacket);
+                    System.out.println(replicaManagerID.name() + " responses " + currentResponse.getSequenceNumber() + " " + response.getContent() + " back to FrontEnd");
 
                     // If the next response on hold doesn't have the expected sequence number, the loop will end
                     if (fifo.peekFirstResponseHoldNumber(managerID) != fifo.getExpectedResponseNumber(managerID))
                         break;
                 }
-            } else if (response.getSequenceNumber() > fifo.getExpectedResponseNumber(managerID)) { // There's other responses must come before this response
+            }
+            // There's other responses must come before this response
+            else if (response.getSequenceNumber() > fifo.getExpectedResponseNumber(managerID)) {
                 // Save the response to the holdback queue
                 fifo.holdResponse(managerID, response);
 
@@ -420,7 +462,7 @@ public class ReplicaManager implements Runnable {
                  */
             } // Else the response is duplicated, ignore it
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            e.printStackTrace(System.err);
         } finally {
             if (toFrontEndSocket != null)
                 toFrontEndSocket.close();
@@ -434,7 +476,21 @@ public class ReplicaManager implements Runnable {
             Config.ARCHITECTURE.SERVER_ID serverID = Config.ARCHITECTURE.SERVER_ID.valueOf(managerID.substring(0, 3).toUpperCase());
 
             // Pass the NameComponent to the NamingService to get the object, then narrow it to proper type
-            DCMS dcmsServer = DCMSHelper.narrow(namingContextRef.resolve_str(serverID.name()));
+            String serverName = "";
+            switch (replicaManagerID) {
+                case MINH:
+                    serverName = "QM_" + serverID.name();
+                    break;
+                case KAMAL:
+                    serverName = "KM_" + serverID.name();
+                    break;
+                case KEN_RO:
+                    serverName = "KR_" + serverID.name();
+                    break;
+                default:
+                    break;
+            }
+            DCMS dcmsServer = DCMSHelper.narrow(namingContextRef.resolve_str(serverName));
             String result = "";
             boolean isSuccess = false;
             switch (request.getMethodName()) {
@@ -516,62 +572,68 @@ public class ReplicaManager implements Runnable {
                 leaderSocket.receive(requestPacket);
 
                 // Each request will be handled by a thread to improve performance
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        /**
-                         * To improve performance, backups will send acknowledgement to the leader
-                         * Right when it receive the message, don't need to wait for the processing
-                         */
-                        // Rebuild the request object
-                        Request request = Config.deserializeRequest(requestPacket.getData());
-                        String managerID = request.getManagerID();
+                new Thread(() -> {
+                    /**
+                     * To improve performance, backups will send acknowledgement to the leader
+                     * Right when it receive the message, don't need to wait for the processing
+                     */
+                    // Rebuild the request object
+                    Request request = Config.deserializeRequest(requestPacket.getData());
+                    System.out.println(replicaManagerID.name() + " receives " + request.getSequenceNumber() + " " + request.getFullInvocation() + " from Leader");
+                    String managerID = request.getManagerID();
 
+                    // This request is the one expected
+                    if (request.getSequenceNumber() == fifo.getExpectedRequestNumber(managerID)) {
                         // Send acknowledgement to the leader
                         acknowledgeToLeader(request);
+                        System.out.println(replicaManagerID.name() + " acknowledge " + request.getSequenceNumber() + " " + request.getFullInvocation());
 
-                        // This request is the one expected
-                        if (request.getSequenceNumber() == fifo.getExpectedRequestNumber(managerID)) {
-                            // Re-broadcast the request to the group
-                            broadcastToGroup(request);
+                        // Re-broadcast the request to the group
+                        broadcastToGroup(request);
+                        System.out.println(replicaManagerID.name() + " broadcasts " + request.getSequenceNumber() + " " + request.getFullInvocation());
 
-                            // Add the request to the queue, so it can be executed in the next step
-                            fifo.holdRequest(managerID, request);
+                        // Add the request to the queue, so it can be executed in the next step
+                        fifo.holdRequest(managerID, request);
 
-                            // Execute this request and the continuous chain of requests after it hold in the queue
-                            while (true) {
-                                Request currentRequest = fifo.popNextRequest(managerID);
+                        // Execute this request and the continuous chain of requests after it hold in the queue
+                        while (true) {
+                            Request currentRequest = fifo.popNextRequest(managerID);
 
-                                // Increase the expected sequence number by 1
-                                fifo.generateRequestNumber(managerID);
+                            // Increase the expected sequence number by 1
+                            fifo.generateRequestNumber(managerID);
 
-                                // Handle the request
-                                executeRequest(currentRequest);
+                            // Handle the request
+                            executeRequest(currentRequest);
+                            System.out.println(replicaManagerID.name() + " executes " + request.getSequenceNumber() + " " + request.getFullInvocation());
 
-                                // If the next request on hold doesn't have the expected sequence number, the loop will end
-                                if (fifo.peekFirstRequestHoldNumber(managerID) != fifo.getExpectedRequestNumber(managerID))
-                                    break;
-                            }
+                            // If the next request on hold doesn't have the expected sequence number, the loop will end
+                            if (fifo.peekFirstRequestHoldNumber(managerID) != fifo.getExpectedRequestNumber(managerID))
+                                break;
                         }
-                        // There're other requests must come before this request
-                        else if (request.getSequenceNumber() > fifo.getExpectedRequestNumber(managerID)) {
-                            // Re-broadcast the request to the group
-                            broadcastToGroup(request);
-
-                            // Save the request to the holdback queue
-                            fifo.holdRequest(managerID, request);
-
-                            /**
-                             * How to take care of the situation
-                             * When the request is put to the queue
-                             * But will never be execute until a new request is sent???
-                             */
-                        } // Else the request is duplicated, ignore it
                     }
+                    // There're other requests must come before this request
+                    else if (request.getSequenceNumber() > fifo.getExpectedRequestNumber(managerID)) {
+                        // Send acknowledgement to the leader
+                        acknowledgeToLeader(request);
+                        System.out.println(replicaManagerID.name() + " acknowledge " + request.getSequenceNumber() + " " + request.getFullInvocation());
+
+                        // Re-broadcast the request to the group
+                        broadcastToGroup(request);
+                        System.out.println(replicaManagerID.name() + " broadcasts " + request.getSequenceNumber() + " " + request.getFullInvocation());
+
+                        // Save the request to the holdback queue
+                        fifo.holdRequest(managerID, request);
+
+                        /**
+                         * How to take care of the situation
+                         * When the request is put to the queue
+                         * But will never be execute until a new request is sent???
+                         */
+                    } // Else the request is duplicated, ignore it
                 }).start();
             }
         } catch (Exception e) {
-            e.printStackTrace(System.out);
+            e.printStackTrace(System.err);
         } finally {
             if (leaderSocket != null)
                 leaderSocket.close();
@@ -581,7 +643,7 @@ public class ReplicaManager implements Runnable {
     private void acknowledgeToLeader(Request request) {
         Unicast unicast = null;
         try {
-            int leaderPort = leaderID.getValue() * Config.UDP.PORT_BACKUPS_TO_LEADER;
+            int leaderPort = leaderID.getCoefficient() * Config.UDP.PORT_BACKUPS_TO_LEADER;
             unicast = new Unicast(leaderPort);
             unicast.send(String.valueOf(request.getSequenceNumber()).getBytes());
         } catch (SocketException e) {
@@ -600,15 +662,12 @@ public class ReplicaManager implements Runnable {
                 DatagramPacket acknowledgement = new DatagramPacket(buffer, buffer.length);
                 socket = new DatagramSocket(fromBackupPort);
                 socket.receive(acknowledgement);
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        int sequenceNumber = Integer.valueOf(new String(acknowledgement.getData()).trim());
-                        synchronized (acknowledgementMap) {
-                            int noOfAck = acknowledgementMap.getOrDefault(sequenceNumber, 0);
-                            if (noOfAck != 0)
-                                acknowledgementMap.put(sequenceNumber, ++noOfAck);
-                        }
+                new Thread(() -> {
+                    int sequenceNumber = Integer.valueOf(new String(acknowledgement.getData()).trim());
+                    synchronized (acknowledgeLock) {
+                        int noOfAck = acknowledgementMap.getOrDefault(sequenceNumber, 0);
+                        if (noOfAck != 0)
+                            acknowledgementMap.put(sequenceNumber, ++noOfAck);
                     }
                 }).start();
             } catch (Exception e) {
@@ -644,8 +703,8 @@ public class ReplicaManager implements Runnable {
         // Prepare the list of Backups
         ArrayList<Integer> ports = new ArrayList<>();
         for (Config.ARCHITECTURE.REPLICAS replica : Config.ARCHITECTURE.REPLICAS.values()) {
-            if (replica != this.replicaManagerID)
-                ports.add(replica.getValue() * Config.UDP.PORT_LEADER_TO_BACKUPS);
+            if (replica != this.replicaManagerID && replica != leaderID)
+                ports.add(replica.getCoefficient() * Config.UDP.PORT_LEADER_TO_BACKUPS);
         }
 
         // Broadcast using FIFO multicast
@@ -656,7 +715,7 @@ public class ReplicaManager implements Runnable {
         int sequenceNumber = request.getSequenceNumber();
         while (true) {
             try {
-                synchronized (acknowledgementMap) {
+                synchronized (acknowledgeLock) {
                     int noOfAck = acknowledgementMap.getOrDefault(sequenceNumber, 0);
                     if (noOfAck == 2)
                         break;
@@ -666,5 +725,38 @@ public class ReplicaManager implements Runnable {
                 e.printStackTrace(System.out);
             }
         }
+    }
+
+    private void listenNewLeader() {
+        DatagramSocket socket = null;
+        try {
+            socket = new DatagramSocket(this.replicaManagerID.getCoefficient() * Config.UDP.PORT_NEW_LEADER);
+            byte[] buffer = new byte[1000];
+            DatagramPacket datagramPacket = new DatagramPacket(buffer, buffer.length);
+            socket.receive(datagramPacket);
+            String datagramContent = new String(datagramPacket.getData()).trim();
+            this.leaderID = Config.ARCHITECTURE.REPLICAS.valueOf(datagramContent);
+//            if (leaderID != this.replicaManagerID)
+//                isLeader = false;
+//            else
+//                isLeader = true;
+            System.out.println(this.replicaManagerID.name() + " updates the new leader is " + leaderID.name());
+        } catch (Exception e) {
+            e.printStackTrace(System.out);
+        } finally {
+            if (socket != null)
+                socket.close();
+        }
+    }
+
+    private void startListening() {
+        // If this is leader, listen to FrontEndImpl
+        new Thread(() -> listenToFrontEnd()).start();
+
+        // and to Backups
+        new Thread(() -> listenToAcknowledgements()).start();
+
+        // If this is backup, listen to Leader
+        new Thread(() -> listenToLeader()).start();
     }
 }
