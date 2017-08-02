@@ -1,4 +1,4 @@
-//provides the implementation DDO server
+package ServersImpl;//provides the implementation DDO server
 
 import DSassg2.ServerInterfaceHelper;
 import org.omg.CORBA.ORB;
@@ -9,9 +9,6 @@ import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 
 import java.io.IOException;
-import java.rmi.AlreadyBoundException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Logger;

@@ -1,52 +1,64 @@
 package Servers;
-
+//i am making hashmap status to store each servers status-true/false
 
 import Utils.Config;
 
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.rmi.RemoteException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 /**
  * Created by kamal on 7/28/2017.
  */
-import Utils.Config;
-import Servers.ReplicaManager;
-import Utils.Configuration;
 
 public class HeartBeat extends Thread {
     private Config.ARCHITECTURE.REPLICAS server_id;
     private int heartbeat_port;
     private int frequency = 5;
-    private boolean status=false;
 
-    public HeartBeat(Config.ARCHITECTURE.REPLICAS id, int port_no)                         //Constructor overloaded
+    private static HashMap<String,Boolean> status=new HashMap<String,Boolean>();
+    static
+    {
+        status.put("MINH",false);
+        status.put("KEN_RO",false);
+        status.put("KAMAL",false);
+    }
+    public HeartBeat(Config.ARCHITECTURE.REPLICAS id, int port_no)
     {
         this.server_id = id;
         System.out.println(server_id);
-        this.heartbeat_port = id.getValue() *port_no;
-        System.out.println(heartbeat_port);
-        status=true;
+        this.heartbeat_port = id.getCoefficient() *port_no;
+        synchronized(status) {
+            status.replace(server_id.toString(), true);//status becomes true when Heartbeat starts
+        }
     }
-
     public int getHeartBeat_Port(Config.ARCHITECTURE.REPLICAS s_id) {
-        return s_id.getValue() *Config.UDP.PORT_HEART_BEAT;
+        return s_id.getCoefficient() *Config.UDP.PORT_HEART_BEAT;
     }
 
     public Config.ARCHITECTURE.REPLICAS getServer_id() {
         return server_id;
     }
 
+    public boolean get_status(String server_id)         //return status
+    {
+        boolean result=false;
+        Iterator<Map.Entry<String, Boolean>> itr = status.entrySet().iterator();
+        while (itr.hasNext()) {
+            Map.Entry<String, Boolean> entry = itr.next();
+            if(entry.getKey().equals(server_id))
+                result=entry.getValue();
+        }
+        return result;
+    }
     public void listner() {
         try {
-
+            Config.ARCHITECTURE.REPLICAS threadServerID=this.server_id;
             new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -55,41 +67,44 @@ public class HeartBeat extends Thread {
                         socket = new DatagramSocket(getHeartBeat_Port(server_id));
                         byte[] buffer = new byte[1000];
                         HashMap<String, Instant> msg_recieved = new HashMap();
-                        for (Config.ARCHITECTURE.REPLICAS replicaID : Config.ARCHITECTURE.REPLICAS.values())
-                        {
-                            msg_recieved.put(replicaID.toString(),Instant.now());
-                        }
-                        while (true) {
-                            DatagramPacket request = new DatagramPacket(buffer, buffer.length);
+                        synchronized (msg_recieved) {
+                            for (Config.ARCHITECTURE.REPLICAS replicaID : Config.ARCHITECTURE.REPLICAS.values()) {
+                                if (replicaID != threadServerID) {
+                                    msg_recieved.put(replicaID.toString(), Instant.now());
+                                }
+                            }
+                            while (true) {
+                                DatagramPacket request = new DatagramPacket(buffer, buffer.length);
+                                socket.receive(request);
 
-                            socket.receive(request);
-                            System.out.println("msg" + new String(request.getData()));
-                            String data_recieved = new String(request.getData());
+                                String data_recieved =new String(new String(request.getData(), request.getOffset(),request.getLength()));
 
-                            msg_recieved.put(data_recieved.substring(10,data_recieved.length()) , Instant.now());
+                                System.out.println("data recieved"+data_recieved);
 
-                       /*     if (data_recieved.contains("I am Alive")) {
-                                msg_recieved.put(data_recieved.substring(10,data_recieved.length()) , Instant.now());
-                            }*/
+                                msg_recieved.replace(data_recieved.substring(10,data_recieved.length()) , Instant.now());
 
-                            Iterator<Map.Entry<String, Instant>> itr = msg_recieved.entrySet().iterator();
-                            while (itr.hasNext()) {
-                                Map.Entry<String, Instant> entry = itr.next();
-                                String key = entry.getKey();
-                                // System.out.println(key +"]]");
-                                Instant time = entry.getValue();
-                                Instant current_time = Instant.now();
-                                int duration = (int) Duration.between(time, current_time).getSeconds();
-                                System.out.println("duration:" + duration);
-                                synchronized (msg_recieved) {
-                                    if (duration > frequency) {
-                                        System.out.println("Key : " + entry.getKey() + " Removed.");
+
+                                Iterator<Map.Entry<String, Instant>> itr = msg_recieved.entrySet().iterator();
+                                while (itr.hasNext()) {
+                                    Map.Entry<String, Instant> entry = itr.next();
+                                    String key = entry.getKey();
+                                    System.out.println(key +entry.getValue());
+                                    Instant time = entry.getValue();
+                                    Instant current_time = Instant.now();
+                                    int duration = (int) Duration.between(time, current_time).getSeconds();
+                                    System.out.println(duration);
+
+                                    if (duration > frequency+1) {
+                                        System.out.println("Key : " + entry.getKey() + " Removed");
                                         System.out.println("server failed" + key);
+                                        String failed_server=key;
+                                        //set_status(failed_server);
                                         itr.remove();
                                         //call election system
                                     }
                                 }
                             }
+
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -113,16 +128,20 @@ public class HeartBeat extends Thread {
 
     public void sender() throws Exception {
         Config.ARCHITECTURE.REPLICAS threadServerID = this.server_id;
-        System.out.println("this .server id"+this.server_id);
+
         new Thread(new Runnable() {
             @Override
             public void run() {
+
                 while (true) {
                     try {
                         for (Config.ARCHITECTURE.REPLICAS replicaID : Config.ARCHITECTURE.REPLICAS.values()) {
-                            if (replicaID != threadServerID) {
-                                send_message(replicaID);
-                                System.out.println("send msg"+replicaID);
+                            // if (replicaID != threadServerID&&get_status(replicaID.toString()))//actual code needs to be this
+                            if(replicaID!=threadServerID){
+                                {
+                                    send_message(replicaID);
+                                    System.out.print("msg sent to"+replicaID);
+                                }
                             }
                         }
                     } catch (Exception e) {
@@ -143,8 +162,9 @@ public class HeartBeat extends Thread {
         byte[] message = ("I am Alive" + this.server_id).getBytes();
         DatagramSocket ds = new DatagramSocket();
         DatagramPacket data_packet = new DatagramPacket(message, message.length, host, getHeartBeat_Port(s_id));//first packet is sent to first serve(port no1)
-        System.out.println("msg sent to port" + getHeartBeat_Port(s_id));
+
         ds.send(data_packet);
+
     }
 
     public void run() {
@@ -155,5 +175,3 @@ public class HeartBeat extends Thread {
         }
     }
 }
-
-
