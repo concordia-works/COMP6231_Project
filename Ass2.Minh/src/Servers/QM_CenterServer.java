@@ -1,8 +1,8 @@
 package Servers;
 
+import Ass2CORBA.DCMSPOA;
 import Utils.Configuration;
 import Utils.Configuration.Server_ID;
-import org.omg.CORBA.DCMSPOA;
 import org.omg.CORBA.ORB;
 
 import java.io.IOException;
@@ -20,7 +20,7 @@ import java.util.logging.SimpleFormatter;
  * Created by quocminhvu on 2017-05-19.
  */
 
-public class CenterServer extends DCMSPOA {
+public class QM_CenterServer extends DCMSPOA {
     private Map<Character, ArrayList<Record>> recordsMap;
     private int recordID;
     private static final Object lockID = new Object();
@@ -29,14 +29,14 @@ public class CenterServer extends DCMSPOA {
     private int recordsCount;
     private int rmiPort;
     private int udpPort;
-    private static final Logger LOGGER = Logger.getLogger(CenterServer.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(QM_CenterServer.class.getName());
     private ORB orb;
 
     public void setORB(ORB orb_val) {
         this.orb = orb_val;
     }
 
-    public CenterServer(Server_ID serverID) throws IOException {
+    public QM_CenterServer(Server_ID serverID) throws IOException {
         super();
         this.recordsMap = Collections.synchronizedMap(new HashMap<>());
         this.serverID = serverID;

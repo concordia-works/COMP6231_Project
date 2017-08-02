@@ -2,13 +2,9 @@ package Client;
 
 import FrontEnd.FE;
 import FrontEnd.FEHelper;
-import Servers.Record;
 import Servers.StudentRecord;
 import Servers.TeacherRecord;
 import Utils.Config;
-import Utils.Configuration;
-import org.omg.CORBA.DCMS;
-import org.omg.CORBA.DCMSHelper;
 import org.omg.CORBA.ORB;
 import org.omg.CosNaming.NamingContextExt;
 import org.omg.CosNaming.NamingContextExtHelper;

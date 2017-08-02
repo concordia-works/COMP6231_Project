@@ -5,8 +5,6 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -14,20 +12,11 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 
+import Ass2CORBA.DCMSPOA;
 import org.omg.CORBA.ORB;
-import HelloApp.HelloPOA;
 import Ressources.Record;
 import Ressources.StudentRecord;
 import Ressources.TeacherRecord;
-
-import HelloApp.*;
-import org.omg.CosNaming.*;
-import org.omg.CosNaming.NamingContextPackage.*;
-import org.omg.CORBA.*;
-import org.omg.PortableServer.*;
-import org.omg.PortableServer.POA;
-
-import java.util.Properties;
 
 import java.io.IOException;
 import java.util.logging.FileHandler;
@@ -35,7 +24,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
-public class HelloImpl extends HelloPOA {
+public class KR_CenterServer extends DCMSPOA {
     private static HashMap<String, ArrayList<Record>> hmap = new HashMap<String, ArrayList<Record>>();
     private ORB orb;
     String serverName;
@@ -45,7 +34,7 @@ public class HelloImpl extends HelloPOA {
     private static int idGeneratingLVL = 1;
     private static int idGeneratingDDO = 2;
 
-    public HelloImpl(String serverName) {
+    public KR_CenterServer(String serverName) {
         super();
         this.serverName = serverName;
         serverLog = initializeLog();
@@ -55,12 +44,10 @@ public class HelloImpl extends HelloPOA {
         orb = orb_val;
     }
 
-    public synchronized String createTRecord(String managerID, String firstName, String lastName, String address,
-                                             String phone, String[] spec, String location) {
-
+    public String createTRecord(String managerID, String firstName, String lastName, String address, String phone, String spec, String location) {
         ArrayList<String> specialization = new ArrayList<String>();
         String storageIndex;
-        specialization = fixArrayT(spec);
+        specialization = fixArrayT(spec.split("/"));
 
         // Instantiate a teacher record object
         TeacherRecord teacherRecord = new TeacherRecord(firstName, lastName, address, phone, specialization, location);
@@ -94,21 +81,19 @@ public class HelloImpl extends HelloPOA {
         String id = recordID;
         serverLog.info(msg);
         clientLog(managerID, msg);
-        System.out.println("Teacher Record " + recordID + " was properly created & logged.");
+//        System.out.println("Teacher Record " + recordID + " was properly created & logged.");
 
         return id;
     }
 
-    public synchronized String createSRecord(String managerID, String firstName, String lastName, String[] cr, String status,
-                                             String statusDate) {
-
+    public String createSRecord(String managerID, String firstName, String lastName, String coursesRegistered, String status) {
         ArrayList<String> courses = new ArrayList<String>();
         String storageIndex;
 
-        courses = fixArrayS(cr);
+        courses = fixArrayS(coursesRegistered.split("/"));
 
         // Instantiate a teacher record object
-        StudentRecord studentRecord = new StudentRecord(firstName, lastName, courses, status, statusDate);
+        StudentRecord studentRecord = new StudentRecord(firstName, lastName, courses, status, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date()));
         switch (serverName) {
             case "MTL":
                 studentRecord.setRecordID(genStudentID(idGeneratingMTL));
@@ -138,7 +123,7 @@ public class HelloImpl extends HelloPOA {
         serverLog.info(msg);
         clientLog(managerID, msg);
         //Server Console
-        System.out.println("Student Record " + recordID + " was properly created & logged.");
+//        System.out.println("Student Record " + recordID + " was properly created & logged.");
 
         // for testing purpose
         readHashMap(storageIndex);
@@ -168,7 +153,7 @@ public class HelloImpl extends HelloPOA {
                 serverLog.info(msg);
                 clientLog(managerID, msg);
                 //Server Console
-                System.out.println(countResult);
+//                System.out.println(countResult);
                 break;
             case "LVL":
                 int lvlRecordCount = 0;
@@ -182,7 +167,7 @@ public class HelloImpl extends HelloPOA {
                 serverLog.info(msg);
                 clientLog(managerID, msg);
                 //Server Console
-                System.out.println(countResult);
+//                System.out.println(countResult);
                 break;
             case "DDO":
                 int ddoRecordCount = 0;
@@ -196,7 +181,7 @@ public class HelloImpl extends HelloPOA {
                 serverLog.info(msg);
                 clientLog(managerID, msg);
                 //Server Console
-                System.out.println(countResult);
+//                System.out.println(countResult);
                 break;
         }
         return msg;
@@ -222,14 +207,14 @@ public class HelloImpl extends HelloPOA {
                                 for (int j = 0; j < courses.size(); j++) {
                                     strCourseList += courses.get(j).toString() + " ";
                                 }
-                                System.out.println("The registered courses were: " + strCourseList);
+//                                System.out.println("The registered courses were: " + strCourseList);
                                 courses.add(newValue);
                                 ((StudentRecord) tempRec).setCourseRegistered(courses);
                                 String newCourseList = "";
                                 for (int j = 0; j < courses.size(); j++) {
                                     newCourseList += courses.get(j).toString() + " ";
                                 }
-                                System.out.println("The registered courses are now: " + newCourseList);
+//                                System.out.println("The registered courses are now: " + newCourseList);
                                 // Write in the ServerLog
                                 Timestamp timestampCourse = new Timestamp(System.currentTimeMillis());
                                 logMsg = timestampCourse + " | " + managerID + " edited the Registered Courses of " + recordID + " from the " + serverName + " Server";
@@ -239,15 +224,15 @@ public class HelloImpl extends HelloPOA {
                                 break;
                             case "STATUS":
                                 String strPreviousStat = ((StudentRecord) tempRec).getStatus();
-                                System.out.println("The previous status was: " + strPreviousStat);
+//                                System.out.println("The previous status was: " + strPreviousStat);
                                 ((StudentRecord) tempRec).setStatus(newValue);
                                 Date date = new Date();
                                 SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
                                 String today = formatter.format(date).toString();
                                 ((StudentRecord) tempRec).setStatusDate(today);
                                 String newStat = ((StudentRecord) tempRec).getStatus();
-                                System.out.println("The status of Student: " + sID + " was successfully changed to: "
-                                        + newStat + " on " + today);
+//                                System.out.println("The status of Student: " + sID + " was successfully changed to: "
+//                                        + newStat + " on " + today);
                                 // Write in the ServerLog
                                 Timestamp timestampStatus = new Timestamp(System.currentTimeMillis());
                                 logMsg = timestampStatus + " | " + managerID + " edited the Status of " + recordID + " from the " + serverName + " Server";
@@ -257,10 +242,10 @@ public class HelloImpl extends HelloPOA {
                                 break;
                             case "STATUS DATE":
                                 String strPreviousDate = ((StudentRecord) tempRec).getStatusDate();
-                                System.out.println("The previous status date was: " + strPreviousDate);
+//                                System.out.println("The previous status date was: " + strPreviousDate);
                                 ((StudentRecord) tempRec).setStatusDate(newValue);
                                 String strNewDate = ((StudentRecord) tempRec).getStatusDate();
-                                System.out.println("The new status date is: " + strNewDate);
+//                                System.out.println("The new status date is: " + strNewDate);
                                 // Write in the ServerLog
                                 Timestamp timestampStatusDate = new Timestamp(System.currentTimeMillis());
                                 logMsg = timestampStatusDate + " | " + managerID + " edited the Status Date of " + recordID + " from the " + serverName + " Server";
@@ -280,10 +265,10 @@ public class HelloImpl extends HelloPOA {
                         switch (fieldName) {
                             case "ADDRESS":
                                 String oldAddress = ((TeacherRecord) tempRec).getAdress();
-                                System.out.println("The previous address was: " + oldAddress);
+//                                System.out.println("The previous address was: " + oldAddress);
                                 ((TeacherRecord) tempRec).setAdress(newValue);
                                 String newAddress = ((TeacherRecord) tempRec).getAdress();
-                                System.out.println("The new address is: " + newAddress);
+//                                System.out.println("The new address is: " + newAddress);
                                 // Write in the ServerLog
                                 Timestamp timestampAddress = new Timestamp(System.currentTimeMillis());
                                 logMsg = timestampAddress + " | " + managerID + " edited the Address of " + recordID + " from the " + serverName + " Server";
@@ -293,10 +278,10 @@ public class HelloImpl extends HelloPOA {
                                 break;
                             case "PHONE":
                                 String oldPhone = ((TeacherRecord) tempRec).getPhone();
-                                System.out.println("The previous phone number was: " + oldPhone);
+//                                System.out.println("The previous phone number was: " + oldPhone);
                                 ((TeacherRecord) tempRec).setPhone(newValue);
                                 String newPhone = ((TeacherRecord) tempRec).getPhone();
-                                System.out.println("The new phone number is: " + newPhone);
+//                                System.out.println("The new phone number is: " + newPhone);
                                 // Write in the ServerLog
                                 Timestamp timestampPhone = new Timestamp(System.currentTimeMillis());
                                 logMsg = timestampPhone + " | " + managerID + " edited the Phone Number of " + recordID + " from the " + serverName + " Server";
@@ -306,10 +291,10 @@ public class HelloImpl extends HelloPOA {
                                 break;
                             case "LOCATION":
                                 String oldLocation = ((TeacherRecord) tempRec).getLocation();
-                                System.out.println("The previous location was: " + oldLocation);
+//                                System.out.println("The previous location was: " + oldLocation);
                                 ((TeacherRecord) tempRec).setLocation(newValue);
                                 String newLocation = ((TeacherRecord) tempRec).getLocation();
-                                System.out.println("The new location is: " + newLocation);
+//                                System.out.println("The new location is: " + newLocation);
                                 // Write in the ServerLog
                                 Timestamp timestampLocation = new Timestamp(System.currentTimeMillis());
                                 logMsg = timestampLocation + " | " + managerID + " edited the Phone Number of " + recordID + " from the " + serverName + " Server";
@@ -480,9 +465,9 @@ public class HelloImpl extends HelloPOA {
             //logger.info("My first log");
 
         } catch (SecurityException e) {
-            e.printStackTrace();
+            e.printStackTrace(System.err);
         } catch (IOException e) {
-            e.printStackTrace();
+            e.printStackTrace(System.err);
         }
 
         return logger;
@@ -537,7 +522,7 @@ public class HelloImpl extends HelloPOA {
 
     public void readHashMap(String index) {
         int itemCount = hmap.get(index).size();
-        System.out.println("Array List, in the HashMap at index " + index + " contains: " + itemCount + " items.");
+//        System.out.println("Array List, in the HashMap at index " + index + " contains: " + itemCount + " items.");
         Record[] recArray = new Record[itemCount];
         String tmpmsg = "";
 
@@ -560,7 +545,7 @@ public class HelloImpl extends HelloPOA {
             }
             tmpmsg += "\n" + recordId + " " + fname + " " + lname;
         }
-        System.out.println("Records at index " + index + " are : " + tmpmsg);
+//        System.out.println("Records at index " + index + " are : " + tmpmsg);
 
     }
 
@@ -603,7 +588,7 @@ public class HelloImpl extends HelloPOA {
                 strID = "TR" + strCount;
                 break;
             default:
-                System.out.println("Error");
+//                System.out.println("Error");
                 break;
         }
         return strID;
@@ -635,7 +620,7 @@ public class HelloImpl extends HelloPOA {
                 strID = "SR" + strCount;
                 break;
             default:
-                System.out.println("Error");
+//                System.out.println("Error");
                 break;
         }
         return strID;
@@ -705,13 +690,13 @@ public class HelloImpl extends HelloPOA {
             byte[] buffer = new byte[100];
             DatagramPacket reply = new DatagramPacket(buffer, buffer.length);
             aSocket.receive(reply);
-            System.out.println("clientUDP received: " + new String(reply.getData()));
+//            System.out.println("clientUDP received: " + new String(reply.getData()));
             returnMsg = new String(reply.getData());
 
         } catch (SocketException e) {
-            System.out.println("Socket: " + e.getMessage());
+            e.printStackTrace(System.err);
         } catch (IOException e) {
-            System.out.println("IO: " + e.getMessage());
+            e.printStackTrace(System.err);
         } finally {
             if (aSocket != null)
                 aSocket.close();
@@ -719,12 +704,27 @@ public class HelloImpl extends HelloPOA {
         return returnMsg;
     }
 
-    public void serverUDP(int port) throws Exception {
+    public void startUDPServer() {
         DatagramSocket aSocket = null;
         String strHMC = null;
         String[] spec = null;
         byte[] hmc = null;
         try {
+            int port = 0;
+            switch (serverName) {
+                case "KR_MTL":
+                    port = 6789;
+                    break;
+                case "KR_LVL":
+                    port = 6788;
+                    break;
+                case "KR_DDO":
+                    port = 6787;
+                    break;
+                default:
+                    break;
+            }
+
             aSocket = new DatagramSocket(port);
 
             while (true) {
@@ -738,7 +738,7 @@ public class HelloImpl extends HelloPOA {
                 } else {
                     String requestContent = new String(request.getData());
                     requestContent = requestContent.trim();
-                    System.out.println(requestContent);
+//                    System.out.println(requestContent);
                     String[] contentComponents = requestContent.split("\\|", -1);
                     if (contentComponents[contentComponents.length - 1].equals("LVL")
                             || contentComponents[contentComponents.length - 1].equals("DDO")
@@ -768,9 +768,9 @@ public class HelloImpl extends HelloPOA {
                 aSocket.send(reply);
             }
         } catch (SocketException e) {
-            System.out.println("Socket: " + e.getMessage());
+            e.printStackTrace(System.err);
         } catch (IOException e) {
-            System.out.println("IO: " + e.getMessage());
+            e.printStackTrace(System.err);
         } finally {
             if (aSocket != null)
                 aSocket.close();
@@ -817,7 +817,7 @@ public class HelloImpl extends HelloPOA {
                 out = new PrintWriter(new FileOutputStream(new File(savestr), true));
             } catch (FileNotFoundException e) {
                 // TODO Auto-generated catch block
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             }
             out.append(logMessage + "\n");
             out.close();
@@ -826,7 +826,7 @@ public class HelloImpl extends HelloPOA {
                 out = new PrintWriter(savestr);
             } catch (FileNotFoundException e) {
                 // TODO Auto-generated catch block
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             }
             out.println(logMessage);
             out.close();
@@ -858,7 +858,7 @@ public class HelloImpl extends HelloPOA {
         //String id = recordID;
         serverLog.info(msg);
         clientLog(managerID, msg);
-        System.out.println("Teacher Record " + recordID + " was properly created & logged.");
+//        System.out.println("Teacher Record " + recordID + " was properly created & logged.");
 
         //return id;
 
@@ -888,7 +888,7 @@ public class HelloImpl extends HelloPOA {
         serverLog.info(msg);
         clientLog(managerID, msg);
         //Server Console
-        System.out.println("Student Record " + recordID + " was properly created & logged.");
+//        System.out.println("Student Record " + recordID + " was properly created & logged.");
 
         // for testing purpose
         readHashMap(storageIndex);

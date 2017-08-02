@@ -1,13 +1,10 @@
 package Servers;
 
-import DSassg2.ServerInterfaceHelper;
-import HelloApp.Hello;
-import HelloApp.HelloHelper;
-import HelloServers.HelloImpl;
-import ServersImpl.Server_Imp;
+import Ass2CORBA.DCMS;
+import Ass2CORBA.DCMSHelper;
+import HelloServers.KR_CenterServer;
+import ServersImpl.KM_CenterServer;
 import Utils.*;
-import org.omg.CORBA.DCMS;
-import org.omg.CORBA.DCMSHelper;
 import org.omg.CORBA.ORB;
 import org.omg.CosNaming.NameComponent;
 import org.omg.CosNaming.NamingContextExt;
@@ -15,7 +12,6 @@ import org.omg.CosNaming.NamingContextExtHelper;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 
-import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -131,11 +127,11 @@ public class ReplicaManager implements Runnable {
             rootPOA.the_POAManager().activate();
 
             // Create servant and register it with the ORB
-            CenterServer mtlServer = new CenterServer(Configuration.Server_ID.QM_MTL);
+            QM_CenterServer mtlServer = new QM_CenterServer(Configuration.Server_ID.QM_MTL);
             mtlServer.setORB(orb);
-            CenterServer lvlServer = new CenterServer(Configuration.Server_ID.QM_LVL);
+            QM_CenterServer lvlServer = new QM_CenterServer(Configuration.Server_ID.QM_LVL);
             lvlServer.setORB(orb);
-            CenterServer ddoServer = new CenterServer(Configuration.Server_ID.QM_DDO);
+            QM_CenterServer ddoServer = new QM_CenterServer(Configuration.Server_ID.QM_DDO);
             ddoServer.setORB(orb);
 
             // Get object reference from the servant
@@ -191,58 +187,46 @@ public class ReplicaManager implements Runnable {
             POA rootPOA = POAHelper.narrow(orb.resolve_initial_references(Config.CORBA.ROOT_POA));
             rootPOA.the_POAManager().activate();
 
-            Server_Imp mtlServer = new Server_Imp(Config.ARCHITECTURE.KAMAL_SERVER_ID.KM_MTL.name());
+            KM_CenterServer mtlServer = new KM_CenterServer(Config.ARCHITECTURE.KAMAL_SERVER_ID.KM_MTL.name());
             mtlServer.setOrb(orb);
-            Server_Imp lvlServer = new Server_Imp(Config.ARCHITECTURE.KAMAL_SERVER_ID.KM_LVL.name());
+            KM_CenterServer lvlServer = new KM_CenterServer(Config.ARCHITECTURE.KAMAL_SERVER_ID.KM_LVL.name());
             lvlServer.setOrb(orb);
-            Server_Imp ddoServer = new Server_Imp(Config.ARCHITECTURE.KAMAL_SERVER_ID.KM_DDO.name());
+            KM_CenterServer ddoServer = new KM_CenterServer(Config.ARCHITECTURE.KAMAL_SERVER_ID.KM_DDO.name());
             ddoServer.setOrb(orb);
 
             org.omg.CORBA.Object mtlObj = rootPOA.servant_to_reference(mtlServer);
             org.omg.CORBA.Object lvlObj = rootPOA.servant_to_reference(lvlServer);
             org.omg.CORBA.Object ddoObj = rootPOA.servant_to_reference(ddoServer);
 
-            DSassg2.ServerInterface mtlRef = ServerInterfaceHelper.narrow(mtlObj);
-            DSassg2.ServerInterface lvlRef = ServerInterfaceHelper.narrow(lvlObj);
-            DSassg2.ServerInterface ddoRef = ServerInterfaceHelper.narrow(ddoObj);
+            DCMS mtlDcmsServer = DCMSHelper.narrow(mtlObj);
+            DCMS lvlDcmsServer = DCMSHelper.narrow(lvlObj);
+            DCMS ddoDcmsServer = DCMSHelper.narrow(ddoObj);
 
             org.omg.CORBA.Object objRef = orb.resolve_initial_references(Config.CORBA.NAME_SERVICE);
             NamingContextExt ncRef = NamingContextExtHelper.narrow(objRef);
 
             NameComponent path[] = ncRef.to_name(Config.ARCHITECTURE.KAMAL_SERVER_ID.KM_MTL.name());
-            ncRef.rebind(path, mtlRef);
+            ncRef.rebind(path, mtlDcmsServer);
             path = ncRef.to_name(Config.ARCHITECTURE.KAMAL_SERVER_ID.KM_LVL.name());
-            ncRef.rebind(path, lvlRef);
+            ncRef.rebind(path, lvlDcmsServer);
             path = ncRef.to_name(Config.ARCHITECTURE.KAMAL_SERVER_ID.KM_DDO.name());
-            ncRef.rebind(path, ddoRef);
+            ncRef.rebind(path, ddoDcmsServer);
 
             new Thread(() -> {
-                try {
-                    mtlServer.UDPServer(mtlServer.get_udp_port());
+                mtlDcmsServer.startUDPServer();
 //                        System.out.println(String.format(Config.LOGGING.UDP_START, Config.ARCHITECTURE.REPLICAS.KAMAL.name(), Config.ARCHITECTURE.SERVER_ID.QM_MTL.name(), mtlServer.get_udp_port()));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
             }).start();
 //            System.out.println(String.format(Config.LOGGING.SERVER_START, Config.ARCHITECTURE.REPLICAS.KAMAL.name(), Config.ARCHITECTURE.SERVER_ID.QM_MTL.name()));
 
             new Thread(() -> {
-                try {
-                    lvlServer.UDPServer(lvlServer.get_udp_port());
+                lvlDcmsServer.startUDPServer();
 //                        System.out.println(String.format(Config.LOGGING.UDP_START, Config.ARCHITECTURE.REPLICAS.KAMAL.name(), Config.ARCHITECTURE.SERVER_ID.QM_LVL.name(), lvlServer.get_udp_port()));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
             }).start();
 //            System.out.println(String.format(Config.LOGGING.SERVER_START, Config.ARCHITECTURE.REPLICAS.KAMAL.name(), Config.ARCHITECTURE.SERVER_ID.QM_LVL.name()));
 
             new Thread(() -> {
-                try {
-                    ddoServer.UDPServer(ddoServer.get_udp_port());
+                ddoDcmsServer.startUDPServer();
 //                        System.out.println(String.format(Config.LOGGING.UDP_START, Config.ARCHITECTURE.REPLICAS.KAMAL.name(), Config.ARCHITECTURE.SERVER_ID.QM_DDO.name(), ddoServer.get_udp_port()));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
             }).start();
 //            System.out.println(String.format(Config.LOGGING.SERVER_START, Config.ARCHITECTURE.REPLICAS.KAMAL.name(), Config.ARCHITECTURE.SERVER_ID.QM_DDO.name()));
 
@@ -263,41 +247,36 @@ public class ReplicaManager implements Runnable {
             rootPOA.the_POAManager().activate();
 
             // create servant and register it with the ORB
-            HelloImpl helloImplMTL = new HelloImpl(Config.ARCHITECTURE.KENRO_SERVER_ID.KR_MTL.name());
+            KR_CenterServer helloImplMTL = new KR_CenterServer(Config.ARCHITECTURE.KENRO_SERVER_ID.KR_MTL.name());
             helloImplMTL.setORB(orb);
-            HelloImpl helloImplLVL = new HelloImpl(Config.ARCHITECTURE.KENRO_SERVER_ID.KR_LVL.name());
+            KR_CenterServer helloImplLVL = new KR_CenterServer(Config.ARCHITECTURE.KENRO_SERVER_ID.KR_LVL.name());
             helloImplLVL.setORB(orb);
-            HelloImpl helloImplDDO = new HelloImpl(Config.ARCHITECTURE.KENRO_SERVER_ID.KR_DDO.name());
+            KR_CenterServer helloImplDDO = new KR_CenterServer(Config.ARCHITECTURE.KENRO_SERVER_ID.KR_DDO.name());
             helloImplDDO.setORB(orb);
 
             // get object reference from the servant
             org.omg.CORBA.Object refMTL = rootPOA.servant_to_reference(helloImplMTL);
-            Hello hrefMTL = HelloHelper.narrow(refMTL);
+            DCMS mtlDcmsServer = DCMSHelper.narrow(refMTL);
             org.omg.CORBA.Object refLVL = rootPOA.servant_to_reference(helloImplLVL);
-            Hello hrefLVL = HelloHelper.narrow(refLVL);
+            DCMS lvlDcmsServer = DCMSHelper.narrow(refLVL);
             org.omg.CORBA.Object refDDO = rootPOA.servant_to_reference(helloImplDDO);
-            Hello hrefDDO = HelloHelper.narrow(refDDO);
+            DCMS ddoDcmsServer = DCMSHelper.narrow(refDDO);
 
-
-            // get the root naming context
-            // NameService invokes the name service
             org.omg.CORBA.Object objRef = orb.resolve_initial_references(Config.CORBA.NAME_SERVICE);
-            // Use NamingContextExt which is part of the Interoperable
-            // Naming Service (INS) specification.
             NamingContextExt ncRef = NamingContextExtHelper.narrow(objRef);
 
             // bind the Object Reference in Naming
             NameComponent pathMTL[] = ncRef.to_name(Config.ARCHITECTURE.KENRO_SERVER_ID.KR_MTL.name());
             NameComponent pathLVL[] = ncRef.to_name(Config.ARCHITECTURE.KENRO_SERVER_ID.KR_LVL.name());
             NameComponent pathDDO[] = ncRef.to_name(Config.ARCHITECTURE.KENRO_SERVER_ID.KR_DDO.name());
-            ncRef.rebind(pathMTL, hrefMTL);
-            ncRef.rebind(pathLVL, hrefLVL);
-            ncRef.rebind(pathDDO, hrefDDO);
+            ncRef.rebind(pathMTL, mtlDcmsServer);
+            ncRef.rebind(pathLVL, lvlDcmsServer);
+            ncRef.rebind(pathDDO, ddoDcmsServer);
 
             // start UDP server
             new Thread(() -> {
                 try {
-                    helloImplMTL.serverUDP(Config.UDP.KENRO_UDP_MTL);
+                    mtlDcmsServer.startUDPServer();
 //                        System.out.println(String.format(Config.LOGGING.UDP_START, Config.ARCHITECTURE.REPLICAS.KEN_RO.name(), Config.ARCHITECTURE.SERVER_ID.QM_MTL.name(), Config.UDP.KENRO_UDP_MTL));
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -307,7 +286,7 @@ public class ReplicaManager implements Runnable {
 
             new Thread(() -> {
                 try {
-                    helloImplLVL.serverUDP(Config.UDP.KENRO_UDP_LVL);
+                    lvlDcmsServer.startUDPServer();
 //                        System.out.println(String.format(Config.LOGGING.UDP_START, Config.ARCHITECTURE.REPLICAS.KEN_RO.name(), Config.ARCHITECTURE.SERVER_ID.QM_LVL.name(), Config.UDP.KENRO_UDP_LVL));
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -317,7 +296,7 @@ public class ReplicaManager implements Runnable {
 
             new Thread(() -> {
                 try {
-                    helloImplDDO.serverUDP(Config.UDP.KENRO_UDP_DDO);
+                    ddoDcmsServer.startUDPServer();
 //                        System.out.println(String.format(Config.LOGGING.UDP_START, Config.ARCHITECTURE.REPLICAS.KEN_RO.name(), Config.ARCHITECTURE.SERVER_ID.QM_DDO.name(), Config.UDP.KENRO_UDP_DDO));
                 } catch (Exception e) {
                     e.printStackTrace();

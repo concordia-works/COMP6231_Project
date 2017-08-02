@@ -1,14 +1,11 @@
-module DSassg2 {
-    typedef sequence <string> courses;
-    typedef sequence <string> field_value;
-
-    interface ServerInterface {
-        string createTRecord(in string manager_id,in string f_name, in string l_name, in string addr, in string number, in string spec,in string loc);
-        string createSRecord(in string manager_id,in string f_name, in string l_name, in string courselist, in string status);
-        string getRecordCount(in string manager_id) ;
+module Ass2CORBA {
+    interface DCMS {
+        string createTRecord(in string managerID, in string firstName, in string lastName, in string address, in string phone, in string specialization, in string location);
+        string createSRecord(in string managerID, in string firstName, in string lastName, in string coursesRegistered, in string status);
+        string getRecordCounts(in string managerID);
+        boolean editRecord(in string managerID, in string recordID, in string fieldName, in string newValue);
+        boolean transferRecord(in string managerID, in string recordID, in string remoteCenterServerName);
         string printAllRecords(in string managerID);
         string printRecord(in string managerID, in string recordID);
-        boolean edit(in string manager_id,in string id,in string field_name,in string value);
-        boolean transferRecord (in string manager_id,in string record_id, in string remoteCenterServerName);
     };
 };
