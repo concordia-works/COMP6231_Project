@@ -25,7 +25,7 @@ public class MTLServer {
             rootPOA.the_POAManager().activate();
 
             // Create servant and register it with the ORB
-            CenterServer servant = new CenterServer(Configuration.Server_ID.MTL);
+            CenterServer servant = new CenterServer(Configuration.Server_ID.QM_MTL);
             servant.setORB(orb);
 
             // Get object reference from the servant
@@ -37,12 +37,12 @@ public class MTLServer {
             NamingContextExt namingContextRef = NamingContextExtHelper.narrow(objRef);
 
             // Bind the object reference to the Naming Context
-            NameComponent path[] = namingContextRef.to_name(Configuration.Server_ID.MTL.name());
+            NameComponent path[] = namingContextRef.to_name(Configuration.Server_ID.QM_MTL.name());
             namingContextRef.rebind(path, dcmsServer);
 
             // Run the server
             dcmsServer.startUDPServer();
-            System.out.println("Server " + Configuration.Server_ID.MTL.name() + " is running ...");
+            System.out.println("Server " + Configuration.Server_ID.QM_MTL.name() + " is running ...");
             orb.run();
         } catch (Exception e) {
             System.out.println("ERROR: " + e);

@@ -1,4 +1,4 @@
-//Provides the implementation of Montreal Server
+package ServersImpl;//Provides the implementation of Montreal Server
 
 import DSassg2.*;
 import org.omg.CORBA.ORB;
@@ -9,9 +9,6 @@ import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 
 import java.io.IOException;
-import java.rmi.AlreadyBoundException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Logger;

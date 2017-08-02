@@ -25,7 +25,7 @@ public class LVLServer {
             rootPOA.the_POAManager().activate();
 
             // Create servant and register it with the ORB
-            CenterServer servant = new CenterServer(Configuration.Server_ID.LVL);
+            CenterServer servant = new CenterServer(Configuration.Server_ID.QM_LVL);
             servant.setORB(orb);
 
             // Get object reference from the servant
@@ -37,12 +37,12 @@ public class LVLServer {
             NamingContextExt namingContextRef = NamingContextExtHelper.narrow(objRef);
 
             // Bind the object reference to the Naming Context
-            NameComponent path[] = namingContextRef.to_name(Configuration.Server_ID.LVL.name());
+            NameComponent path[] = namingContextRef.to_name(Configuration.Server_ID.QM_LVL.name());
             namingContextRef.rebind(path, dcmsServer);
 
             // Run the server
             dcmsServer.startUDPServer();
-            System.out.println("Server " + Configuration.Server_ID.LVL.name() + " is running ...");
+            System.out.println("Server " + Configuration.Server_ID.QM_LVL.name() + " is running ...");
             orb.run();
         } catch (Exception e) {
             System.out.println("ERROR: " + e);

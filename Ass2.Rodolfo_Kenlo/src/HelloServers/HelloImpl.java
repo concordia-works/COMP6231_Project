@@ -1,3 +1,5 @@
+package HelloServers;
+
 import java.io.*;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -32,7 +34,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
-class HelloImpl extends HelloPOA {
+public class HelloImpl extends HelloPOA {
     private static HashMap<String, ArrayList<Record>> hmap = new HashMap<String, ArrayList<Record>>();
     private ORB orb;
     String serverName;
