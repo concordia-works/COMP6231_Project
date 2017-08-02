@@ -40,7 +40,9 @@ public class HelloImpl extends HelloPOA {
     String serverName;
     Logger serverLog;
     static Record obj;
-    int idGenerating = 1;
+    private static int idGeneratingMTL = 0;
+    private static int idGeneratingLVL = 1;
+    private static int idGeneratingDDO = 2;
 
     public HelloImpl(String serverName) {
         super();
@@ -61,8 +63,21 @@ public class HelloImpl extends HelloPOA {
 
         // Instantiate a teacher record object
         TeacherRecord teacherRecord = new TeacherRecord(firstName, lastName, address, phone, specialization, location);
-        teacherRecord.setRecordID(genTeacherID(idGenerating));
-        idGenerating++;
+        switch(serverName){
+            case "MTL":
+                teacherRecord.setRecordID(genTeacherID(idGeneratingMTL));
+                idGeneratingMTL = idGeneratingMTL + 3;
+                break;
+            case "LVL":
+                teacherRecord.setRecordID(genTeacherID(idGeneratingLVL));
+                idGeneratingLVL = idGeneratingLVL + 3;
+                break;
+            case "DDO":
+                teacherRecord.setRecordID(genTeacherID(idGeneratingDDO));
+                idGeneratingDDO = idGeneratingDDO + 3;
+            default:
+                break;
+        }
         // get teacher's last name first letter
         storageIndex = getFirstLetter(teacherRecord.getLastName());
         // insert the record object in the hashmap according to its first letter
@@ -93,8 +108,21 @@ public class HelloImpl extends HelloPOA {
 
         // Instantiate a teacher record object
         StudentRecord studentRecord = new StudentRecord(firstName, lastName, courses, status, statusDate);
-        studentRecord.setRecordID(genStudentID(idGenerating));
-        idGenerating++;
+        switch(serverName){
+            case "MTL":
+                studentRecord.setRecordID(genStudentID(idGeneratingMTL));
+                idGeneratingMTL = idGeneratingMTL + 3;
+                break;
+            case "LVL":
+                studentRecord.setRecordID(genStudentID(idGeneratingLVL));
+                idGeneratingLVL = idGeneratingLVL + 3;
+                break;
+            case "DDO":
+                studentRecord.setRecordID(genStudentID(idGeneratingDDO));
+                idGeneratingDDO = idGeneratingDDO + 3;
+            default:
+                break;
+        }
         // get teacher's last name first letter
         storageIndex = getFirstLetter(studentRecord.getLastName());
         // insert the record object in the hashmap according to its first letter
@@ -798,7 +826,6 @@ public class HelloImpl extends HelloPOA {
         // Instantiate a teacher record object
         StudentRecord studentRecord = new StudentRecord(firstName, lastName, courses, status, statusDate);
         studentRecord.setRecordID(recordID);
-        idGenerating++;
         // get teacher's last name first letter
         storageIndex = getFirstLetter(studentRecord.getLastName());
         // insert the record object in the hashmap according to its first letter
