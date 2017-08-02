@@ -126,7 +126,7 @@ class Election implements Runnable {
             }
             DatagramPacket datagramPacket = new DatagramPacket(buffer, buffer.length, InetAddress.getLocalHost(), Config.FRONT_END.COEFFICIENT * Config.UDP.PORT_NEW_LEADER);
             socket.send(datagramPacket);
-//            System.out.println(this.replicaManagerID.name() + " announces new leader is " + newLeaderID.name());
+//            System.out.println(this.replicaManagerID.name() + " announces new leader is " + newLeaderID.name() + " to FrontEnd");
         } catch (Exception e) {
             e.printStackTrace(System.out);
         }

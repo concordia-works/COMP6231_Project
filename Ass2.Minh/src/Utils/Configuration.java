@@ -38,8 +38,8 @@ public class Configuration {
     public static final String PRINT_STUDENT_RECORD = "%s: Name(%s %s) CoursesRegistered(%s) Status(%s) StatusDate(%s)";
 
     // Logging
-    public static final String LOG_SERVER_FILENAME = "/log/server_%s.log";
-    public static final String LOG_MANAGER_FILENAME = "/log/manager_%s.log";
+    public static final String LOG_SERVER_FILENAME = "server_%s.log";
+    public static final String LOG_MANAGER_FILENAME = "manager_%s.log";
     public static final String LOG_MODIFIED_RECORD_SUCCESS = "%s modify %s: FieldName(%s) Value(%s)";
     public static final String LOG_MODIFIED_RECORD_FAILED = "%s cannot modify %s: FieldName(%s) Value(%s)";
     public static final String LOG_CREATE_TEACHER_RECORD = "%s add %s: Name(%s %s) Add(%s) Phone(%s) Spec(%s) Loc(%s)";

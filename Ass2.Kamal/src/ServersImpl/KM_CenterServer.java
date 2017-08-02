@@ -1,17 +1,18 @@
 package ServersImpl;
 
-import DSassg2.ServerInterfacePOA;
+import Ass2CORBA.DCMSPOA;
 import org.omg.CORBA.ORB;
 
 import java.io.*;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketException;
 import java.rmi.RemoteException;
 import java.util.*;
 import java.util.logging.Logger;
 
-public class Server_Imp extends ServerInterfacePOA {
+public class KM_CenterServer extends DCMSPOA {
     private ORB orb;
     int rmi_port = 0;                                                        //rmi port of server
     int udp_port = 0;                                                        //udp port of server
@@ -24,8 +25,7 @@ public class Server_Imp extends ServerInterfacePOA {
     String record_id = "";
     int student_count = 0;                                            //student and teacher count intialized to zero
     int teacher_count = 0;
-    int student_recordid=0;
-    int teacher_recordid=0;
+    int recordIDGenerator = 0;
 
     String count_result[] = {"0", "0", "0"};                                //String array to store count of all three servers
 
@@ -40,7 +40,7 @@ public class Server_Imp extends ServerInterfacePOA {
     HashMap<Character, ArrayList<Record>> map = new HashMap<Character, ArrayList<Record>>();    //hashmap of type character as key and arraylist as value
 
 
-    public Server_Imp() throws RemoteException {
+    public KM_CenterServer() throws RemoteException {
         super();
     }                            //default constructor
 
@@ -50,25 +50,22 @@ public class Server_Imp extends ServerInterfacePOA {
     }
 
 
-    public Server_Imp(String x) throws RemoteException                          //Constructor overloaded
+    public KM_CenterServer(String x) throws RemoteException                          //Constructor overloaded
     {
         server_name = x;
 
         if (x.equals("MTL")) {
             rmi_port = 2964;
             udp_port = 5434;
-            student_recordid=0;
-            teacher_recordid=0;
+            recordIDGenerator = 0;
         } else if (x.equals("LVL")) {
             rmi_port = 2965;
             udp_port = 5439;
-            student_recordid=1;
-            teacher_recordid=1;
+            recordIDGenerator = 1;
         } else if (x.equals("DDO")) {
             rmi_port = 2966;
             udp_port = 5436;
-            student_recordid=2;
-            teacher_recordid=2;
+            recordIDGenerator = 2;
         }
     }
 
@@ -110,7 +107,7 @@ public class Server_Imp extends ServerInterfacePOA {
 
     }
 
-    private  String[] send_and_recieve_packets(int port1, int port2)        //invoked server sends the count request to other two servers and recieve their reply
+    private String[] send_and_recieve_packets(int port1, int port2)        //invoked server sends the count request to other two servers and recieve their reply
     {
         String result[] = {"", ""};
         try {
@@ -141,12 +138,13 @@ public class Server_Imp extends ServerInterfacePOA {
         return result;
     }
 
-    public String createTRecord(String manager_id,String f_name, String l_name, String addr, String number, String spec, String loc ) {                                                                                    //creates the teacher record
-        String result="";
+    public String createTRecord(String manager_id, String f_name, String l_name, String addr, String number, String spec, String loc) {                                                                                    //creates the teacher record
+        String result = "";
         synchronized (lockID) {
             teacher_count++;
-            teacher_recordid+=3;
-            String formatted = String.format("%05d", teacher_recordid);
+
+            String formatted = String.format("%05d", recordIDGenerator);
+            recordIDGenerator += 3;
             record_id = "TR" + formatted;
 
 
@@ -154,28 +152,29 @@ public class Server_Imp extends ServerInterfacePOA {
 
             char first = l_name.charAt(0);
             insert(r, first);
-            result=record_id;
+            result = record_id;
         }         //calls insert method to insert the new record	success_flag=true;
         logger.info("Teacher record created by " + manager_id);
         return result;
     }
 
-    public String createSRecord(String manager_id,String f_name, String l_name, String courses, String status) {                                                                            //creates student record
-        String result="";
+    public String createSRecord(String manager_id, String f_name, String l_name, String courses, String status) {                                                                            //creates student record
+        String result = "";
         synchronized (lockID) {
             ++student_count;
-            student_recordid+=3;
+
             //System.out.println("student count"+student_count);
 
-            String formatted = String.format("%05d", student_recordid);
+            String formatted = String.format("%05d", recordIDGenerator);
+            recordIDGenerator += 3;
             record_id = "SR" + formatted;
-            String dat=new Date(System.currentTimeMillis()).toString();
+            String dat = new Date(System.currentTimeMillis()).toString();
             Record r = new Record(record_id, f_name, l_name, courses, status, dat);
 
             char first = l_name.charAt(0);
 
             insert(r, first);
-            result=record_id;
+            result = record_id;
         }
         success_flag = true;
         logger.info("Student record created by " + manager_id);
@@ -222,9 +221,9 @@ public class Server_Imp extends ServerInterfacePOA {
         return result;
     }
 
-    public synchronized String  getRecordCount(String manager_id)                //returns the total number of records on all the servers
+    public synchronized String getRecordCounts(String manager_id)                //returns the total number of records on all the servers
     {
-        String result_value="";
+        String result_value = "";
         try {
             int record_count = this.total_no_of_records();
             count_result[0] = this.server_name + " " + Integer.toString(record_count);
@@ -249,14 +248,14 @@ public class Server_Imp extends ServerInterfacePOA {
                     count_result[2] = " LVL:" + result[1];
                     break;
             }
-            result_value=count_result[0]+" "+count_result[1]+" "+count_result[2];
+            result_value = count_result[0] + " " + count_result[1] + " " + count_result[2];
             logger.info("gerRecordCount function performed by user " + manager_id + "  " + count_result[0] + count_result[1] + count_result[2]);
         } catch (Exception e) {
         }
         return result_value;
     }
 
-    public boolean edit(String manager_id,String id, String field_name, String value)            //edit the record with given record id
+    public boolean editRecord(String manager_id, String id, String field_name, String value)            //edit the record with given record id
     {
         for (Map.Entry<Character, ArrayList<Record>> entry : map.entrySet()) {
             synchronized (lockID) {
@@ -297,14 +296,12 @@ public class Server_Imp extends ServerInterfacePOA {
                                     success_flag = false;
                                     logger.info("Status edit failed by " + manager_id);
                                 }
-                            } else if(field_name.equals("courses_Registered")) {
-                                x.courses_Registered=value;
+                            } else if (field_name.equals("courses_Registered")) {
+                                x.courses_Registered = value;
                                 success_flag = true;
                                 logger.info("Corses_Registered is edited for record id:" + record_id + " by " + manager_id);
 
-                            }
-                            else
-                            {
+                            } else {
                                 success_flag = false;
                             }
                         }
@@ -317,16 +314,14 @@ public class Server_Imp extends ServerInterfacePOA {
     }
 
 
-
-
-
-    public void UDPServer(int udpport) throws IOException                        //starts the udp server on given port
+    public void startUDPServer()                        //starts the udp server on given port
     {
-        ds = new DatagramSocket(udpport);
+        try {
+            ds = new DatagramSocket(udp_port);
         while (true) {
             byte[] a = new byte[2000];
             DatagramPacket data_packet = new DatagramPacket(a, a.length);
-            ds.receive(data_packet);											//data is recieved in data packet
+            ds.receive(data_packet);                                            //data is recieved in data packet
             DatagramSocket socket = ds;
 
             try {
@@ -350,7 +345,10 @@ public class Server_Imp extends ServerInterfacePOA {
 
                         new Thread(new Runnable() {
                             @Override
-                            public void run() {transferSRecord("server",record_id,f_name, l_name, courses, status );}}).start();
+                            public void run() {
+                                transferSRecord("server", record_id, f_name, l_name, courses, status);
+                            }
+                        }).start();
                         //createSRecord() is called
                     } else {
 
@@ -361,7 +359,10 @@ public class Server_Imp extends ServerInterfacePOA {
                         String loc = fields[6];
                         new Thread(new Runnable() {
                             @Override
-                            public void run() {transferTRecord("server",record_id,f_name, l_name, addr, phone, spec, loc);} }).start();      //createTRecord() is called
+                            public void run() {
+                                transferTRecord("server", record_id, f_name, l_name, addr, phone, spec, loc);
+                            }
+                        }).start();      //createTRecord() is called
                     }
                 }
 
@@ -370,9 +371,12 @@ public class Server_Imp extends ServerInterfacePOA {
             }
 
         }
+        } catch (SocketException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
-
-
 
 
     public synchronized boolean transferRecord(String manager_id, String record_id, String servername) {
@@ -386,27 +390,26 @@ public class Server_Imp extends ServerInterfacePOA {
             port = 5436;
 
 
-        for( ArrayList<Record> recordlist :this.map.values() )
-        {	Iterator <Record > iterator=recordlist.iterator();
-            while(iterator.hasNext())
-            {
-                Record record=iterator.next();
-                if (record_id.equals(record.record_id)) {	//record with particular recrd id is searched
+        for (ArrayList<Record> recordlist : this.map.values()) {
+            Iterator<Record> iterator = recordlist.iterator();
+            while (iterator.hasNext()) {
+                Record record = iterator.next();
+                if (record_id.equals(record.record_id)) {    //record with particular recrd id is searched
                     synchronized (record) {
                         try {
                             record_to_be_transfered = record;
 
-                            String y=record_to_be_transfered.toString();			//record coverted into string
-                            byte array[]=y.getBytes();								//String is converted into byte array
+                            String y = record_to_be_transfered.toString();            //record coverted into string
+                            byte array[] = y.getBytes();                                //String is converted into byte array
                             InetAddress host = InetAddress.getLocalHost();
                             ds = new DatagramSocket();
                             DatagramPacket data_packet_request = new DatagramPacket(array, array.length, host, port);//first packet is sent to first serve(port no1)
-                            this.ds.send(data_packet_request);						//Data is sent to remote server
+                            this.ds.send(data_packet_request);                        //Data is sent to remote server
 
-                            iterator.remove();										//record is removed from hashmap
+                            iterator.remove();                                        //record is removed from hashmap
 
                             synchronized (lockCount) {
-                                if (record_id.contains("SR"))						//record count is decremented
+                                if (record_id.contains("SR"))                        //record count is decremented
                                     student_count--;
                                 else
                                     teacher_count--;
@@ -427,8 +430,8 @@ public class Server_Imp extends ServerInterfacePOA {
     }
 
 
-    private String transferTRecord(String manager_id,String record_id,String f_name, String l_name, String addr, String number, String spec, String loc ) {                                                                                    //creates the teacher record
-        String result="";
+    private String transferTRecord(String manager_id, String record_id, String f_name, String l_name, String addr, String number, String spec, String loc) {                                                                                    //creates the teacher record
+        String result = "";
         synchronized (lockID) {
             teacher_count++;
 
@@ -436,25 +439,25 @@ public class Server_Imp extends ServerInterfacePOA {
 
             char first = l_name.charAt(0);
             insert(r, first);
-            result=record_id;
+            result = record_id;
         }         //calls insert method to insert the new record	success_flag=true;
         logger.info("Teacher record created by " + manager_id);
         return result;
     }
 
-    private String transferSRecord(String manager_id,String record_id,String f_name, String l_name, String courses, String status) {                                                                            //creates student record
-        String result="";
+    private String transferSRecord(String manager_id, String record_id, String f_name, String l_name, String courses, String status) {                                                                            //creates student record
+        String result = "";
         synchronized (lockID) {
             ++student_count;
 
             //System.out.println("student count"+student_count);
 
-            String dat=new Date(System.currentTimeMillis()).toString();
+            String dat = new Date(System.currentTimeMillis()).toString();
             Record r = new Record(record_id, f_name, l_name, courses, status, dat);
             char first = l_name.charAt(0);
 
             insert(r, first);
-            result=record_id;
+            result = record_id;
         }
         success_flag = true;
         logger.info("Student record created by " + manager_id);

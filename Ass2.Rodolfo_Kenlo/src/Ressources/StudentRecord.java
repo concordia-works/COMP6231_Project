@@ -8,7 +8,7 @@ public class StudentRecord extends Record {
 	private String status;
 	private String statusDate;
 
-	
+
 	public StudentRecord(String firstName, String lastName, ArrayList<String> courseRegistered,
 			String status, String statusDate) {
 
@@ -18,9 +18,9 @@ public class StudentRecord extends Record {
 		this.status = status;
 		this.statusDate = statusDate;
 		this.recordType = Record.RECORD_TYPE.STUDENT;
-		
+
 	}
-		
+
 	public String getRecordID() {
 			return recordID;
 	}
@@ -47,8 +47,8 @@ public class StudentRecord extends Record {
 	public void setStatusDate(String statusDate) {
 		this.statusDate = statusDate;
 	}
-	
-	
-	
+
+
+
 
 }

@@ -8,7 +8,9 @@ public class Config {
 
     public static class ARCHITECTURE {
         public enum REPLICAS {
-            KEN_RO(1), KAMAL(2), MINH(3);
+//            MINH(1), KAMAL(2), KEN_RO(3);
+//            KEN_RO(1), MINH(2), KAMAL(3);
+            KAMAL(1), KEN_RO(2), MINH(3);
 
             private final int coefficient;
             REPLICAS(int coefficient) { this.coefficient = coefficient; }
@@ -73,7 +75,7 @@ public class Config {
                 "2. Multi Threads" + System.lineSeparator() +
                 "Your choice: ";
 
-        public static final String SINGLE_THREAD_MENU =
+        public static final String SINGLE_THREAD_MENU = System.lineSeparator() +
                 "-----SINGLE THREAD MENU-----" + System.lineSeparator() +
                 "0. Back" + System.lineSeparator() +
                 "1. Create Student record" + System.lineSeparator() +
@@ -86,7 +88,7 @@ public class Config {
                 "8. Login to another server" + System.lineSeparator() +
                 "Your choice: ";
 
-        public static final String MULTI_THREAD_MENU =
+        public static final String MULTI_THREAD_MENU = System.lineSeparator() +
                 "---------------------------MULTI THREAD MENU---------------------------" + System.lineSeparator() +
                 "0. Back" + System.lineSeparator() +
                 "1. Multi-threads create new records concurrently" + System.lineSeparator() +
@@ -95,7 +97,7 @@ public class Config {
     }
 
     public static class LOGGING {
-        public static final String MANAGER_FILE_PATH = "/log/manager_%s.log";
+        public static final String MANAGER_FILE_PATH = "manager_%s.log";
         public static final String GET_RECORDS_COUNT = "%s get count %s";
         public static final String SERVER_START = "RM %s: Server %s starts";
         public static final String UDP_START = "RM %s - Server %s: UDP starts at port %s";

@@ -7,5 +7,6 @@ module Ass2CORBA {
         boolean transferRecord(in string managerID, in string recordID, in string remoteCenterServerName);
         string printAllRecords(in string managerID);
         string printRecord(in string managerID, in string recordID);
+        void startUDPServer();
     };
 };
