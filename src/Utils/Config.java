@@ -29,10 +29,10 @@ public class Config {
 
     public static class RESPONSE {
         public static final String RESPONSE_CONTENT = "Request %s is %s" + System.lineSeparator() + "%s";
-        public static final String CREATE_T_RECORD = "ServersImpl.Record %s is created" + System.lineSeparator();
-        public static final String CREATE_S_RECORD = "Student record %s is created" + System.lineSeparator();
-        public static final String EDIT_RECORD = "ServersImpl.Record %s is edited" + System.lineSeparator();
-        public static final String TRANSFER_RECORD = "ServersImpl.Record %s is transferred" + System.lineSeparator();
+        public static final String CREATE_T_RECORD = "Teacher record %s is created";
+        public static final String CREATE_S_RECORD = "Student record %s is created";
+        public static final String EDIT_RECORD = "Record %s is edited";
+        public static final String TRANSFER_RECORD = "Record %s is transferred";
     }
 
     public static class CORBA {
@@ -44,12 +44,11 @@ public class Config {
 
     public static class UDP {
         public static final int PORT_FRONT_END_TO_LEADER = 1231;
-        public static final int PORT_LEADER_TO_FRONT_END = 1232;
-        public static final int PORT_LEADER_TO_BACKUPS = 1233;
-        public static final int PORT_BACKUPS_TO_LEADER = 1234;
-        public static final int PORT_HEART_BEAT = 1235;
-        public static final int PORT_ELECTION = 1236;
-        public static final int PORT_NEW_LEADER = 1237;
+        public static final int PORT_LEADER_TO_BACKUPS = 1232;
+        public static final int PORT_BACKUPS_TO_LEADER = 1233;
+        public static final int PORT_HEART_BEAT = 1234;
+        public static final int PORT_ELECTION = 1235;
+        public static final int PORT_NEW_LEADER = 1236;
 
         public static final int KENRO_UDP_MTL = 6789;
         public static final int KENRO_UDP_LVL = 6788;
@@ -74,7 +73,8 @@ public class Config {
                 "2. Multi Threads" + System.lineSeparator() +
                 "Your choice: ";
 
-        public static final String SINGLE_THREAD_MENU = System.lineSeparator() +
+        public static final String SINGLE_THREAD_MENU =
+                "-----SINGLE THREAD MENU-----" + System.lineSeparator() +
                 "0. Back" + System.lineSeparator() +
                 "1. Create Student record" + System.lineSeparator() +
                 "2. Create Teacher record" + System.lineSeparator() +
@@ -86,7 +86,8 @@ public class Config {
                 "8. Login to another server" + System.lineSeparator() +
                 "Your choice: ";
 
-        public static final String MULTI_THREAD_MENU = System.lineSeparator() +
+        public static final String MULTI_THREAD_MENU =
+                "---------------------------MULTI THREAD MENU---------------------------" + System.lineSeparator() +
                 "0. Back" + System.lineSeparator() +
                 "1. Multi-threads create new records concurrently" + System.lineSeparator() +
                 "2. Multi-threads edit, print and transfer the same record concurrently" + System.lineSeparator() +
@@ -94,7 +95,7 @@ public class Config {
     }
 
     public static class LOGGING {
-        public static final String MANAGER_FILE_PATH = "/Users/quocminhvu/Documents/workspace/IdeaProjects/COMP6231_Assignment02/log/manager_%s.log";
+        public static final String MANAGER_FILE_PATH = "/log/manager_%s.log";
         public static final String GET_RECORDS_COUNT = "%s get count %s";
         public static final String SERVER_START = "RM %s: Server %s starts";
         public static final String UDP_START = "RM %s - Server %s: UDP starts at port %s";

@@ -579,18 +579,18 @@ public class ReplicaManager implements Runnable {
                      */
                     // Rebuild the request object
                     Request request = Config.deserializeRequest(requestPacket.getData());
-                    System.out.println(replicaManagerID.name() + " receives " + request.getSequenceNumber() + " " + request.getFullInvocation() + " from Leader");
+//                    System.out.println(replicaManagerID.name() + " receives " + request.getSequenceNumber() + " " + request.getFullInvocation() + " from Leader");
                     String managerID = request.getManagerID();
 
                     // This request is the one expected
                     if (request.getSequenceNumber() == fifo.getExpectedRequestNumber(managerID)) {
                         // Send acknowledgement to the leader
                         acknowledgeToLeader(request);
-                        System.out.println(replicaManagerID.name() + " acknowledge " + request.getSequenceNumber() + " " + request.getFullInvocation());
+//                        System.out.println(replicaManagerID.name() + " acknowledge " + request.getSequenceNumber() + " " + request.getFullInvocation());
 
                         // Re-broadcast the request to the group
                         broadcastToGroup(request);
-                        System.out.println(replicaManagerID.name() + " broadcasts " + request.getSequenceNumber() + " " + request.getFullInvocation());
+//                        System.out.println(replicaManagerID.name() + " broadcasts " + request.getSequenceNumber() + " " + request.getFullInvocation());
 
                         // Add the request to the queue, so it can be executed in the next step
                         fifo.holdRequest(managerID, request);
@@ -604,7 +604,7 @@ public class ReplicaManager implements Runnable {
 
                             // Handle the request
                             executeRequest(currentRequest);
-                            System.out.println(replicaManagerID.name() + " executes " + request.getSequenceNumber() + " " + request.getFullInvocation());
+//                            System.out.println(replicaManagerID.name() + " executes " + request.getSequenceNumber() + " " + request.getFullInvocation());
 
                             // If the next request on hold doesn't have the expected sequence number, the loop will end
                             if (fifo.peekFirstRequestHoldNumber(managerID) != fifo.getExpectedRequestNumber(managerID))
@@ -615,11 +615,11 @@ public class ReplicaManager implements Runnable {
                     else if (request.getSequenceNumber() > fifo.getExpectedRequestNumber(managerID)) {
                         // Send acknowledgement to the leader
                         acknowledgeToLeader(request);
-                        System.out.println(replicaManagerID.name() + " acknowledge " + request.getSequenceNumber() + " " + request.getFullInvocation());
+//                        System.out.println(replicaManagerID.name() + " acknowledge " + request.getSequenceNumber() + " " + request.getFullInvocation());
 
                         // Re-broadcast the request to the group
                         broadcastToGroup(request);
-                        System.out.println(replicaManagerID.name() + " broadcasts " + request.getSequenceNumber() + " " + request.getFullInvocation());
+//                        System.out.println(replicaManagerID.name() + " broadcasts " + request.getSequenceNumber() + " " + request.getFullInvocation());
 
                         // Save the request to the holdback queue
                         fifo.holdRequest(managerID, request);
@@ -656,26 +656,28 @@ public class ReplicaManager implements Runnable {
 
     private void listenToAcknowledgements() {
         DatagramSocket socket = null;
-        while (true) {
-            try {
-                byte[] buffer = new byte[50];
+        try {
+            socket = new DatagramSocket(fromBackupPort);
+//            System.out.println(this.replicaManagerID + " starts listening to acks");
+            while (true) {
+                byte[] buffer = new byte[1000];
                 DatagramPacket acknowledgement = new DatagramPacket(buffer, buffer.length);
-                socket = new DatagramSocket(fromBackupPort);
                 socket.receive(acknowledgement);
                 new Thread(() -> {
                     int sequenceNumber = Integer.valueOf(new String(acknowledgement.getData()).trim());
+//                    System.out.println(this.replicaManagerID.name() + " received an ack of " + sequenceNumber);
                     synchronized (acknowledgeLock) {
                         int noOfAck = acknowledgementMap.getOrDefault(sequenceNumber, 0);
-                        if (noOfAck != 0)
-                            acknowledgementMap.put(sequenceNumber, ++noOfAck);
+                        acknowledgementMap.put(sequenceNumber, ++noOfAck);
+//                        System.out.println(sequenceNumber + " now has " + noOfAck + " acks");
                     }
                 }).start();
-            } catch (Exception e) {
-                e.printStackTrace(System.out);
-            } finally {
-                if (socket != null)
-                    socket.close();
             }
+        } catch (Exception e) {
+            e.printStackTrace(System.out);
+        } finally {
+            if (socket != null)
+                socket.close();
         }
 //        try {
 //            for (int i = 0; i < Config.ARCHITECTURE.REPLICAS.values().length - 1; i++) {
@@ -717,10 +719,11 @@ public class ReplicaManager implements Runnable {
             try {
                 synchronized (acknowledgeLock) {
                     int noOfAck = acknowledgementMap.getOrDefault(sequenceNumber, 0);
+//                    System.out.println(sequenceNumber + " has " + noOfAck + " acks");
                     if (noOfAck == 2)
                         break;
                 }
-                sleep(100);
+                sleep(50);
             } catch (InterruptedException e) {
                 e.printStackTrace(System.out);
             }

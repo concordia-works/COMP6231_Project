@@ -565,9 +565,9 @@ public class ManagerClient {
         String coursesRegistered = sc.nextLine();
         System.out.print("Enter Status: ");
         String status = sc.nextLine();
-        String recordID = frontEnd.createSRecord(managerID, firstName, lastName, coursesRegistered, status);
-        LOGGER.info(recordID + " created");
-        System.out.println(recordID + " created");
+        String result = frontEnd.createSRecord(managerID, firstName, lastName, coursesRegistered, status);
+        LOGGER.info(result);
+        System.out.println(result);
     }
 
     private void createTeacherRecord(FE frontEnd) {
@@ -583,14 +583,14 @@ public class ManagerClient {
         String specialization = sc.nextLine();
         System.out.print("Enter Location: ");
         String location = sc.nextLine();
-        String recordID = frontEnd.createTRecord(managerID, firstName, lastName, address, phone, specialization, location);
-        LOGGER.info(recordID + " created");
-        System.out.println(recordID + " created");
+        String result = frontEnd.createTRecord(managerID, firstName, lastName, address, phone, specialization, location);
+        LOGGER.info(result);
+        System.out.println(result);
     }
 
     private void editRecord(FE frontEnd) {
         int input;
-        System.out.print("Enter ServersImpl.Record ID: ");
+        System.out.print("Enter Record ID: ");
         String recordID = sc.nextLine().toUpperCase();
 
         String fieldName;
@@ -630,7 +630,7 @@ public class ManagerClient {
     }
 
     private void transferRecord(FE frontEnd) {
-        System.out.print("Enter ServersImpl.Record ID: ");
+        System.out.print("Enter Record ID: ");
         String recordID = sc.nextLine().toUpperCase();
         System.out.print("Enter Server Name: ");
         String serverName = sc.nextLine().toUpperCase();
@@ -640,12 +640,12 @@ public class ManagerClient {
     }
 
     private void printRecord(FE frontEnd) {
-        System.out.print("Enter ServersImpl.Record ID: ");
+        System.out.print("Enter Record ID: ");
         String recordID = sc.nextLine().toUpperCase();
         String result = frontEnd.printRecord(managerID, recordID);
         if (result.compareTo("") != 0) {
             System.out.println(result);
-            LOGGER.info(String.format(recordID + " is printed"));
+            LOGGER.info(String.format(result));
         }
         else {
             System.out.println(recordID + " not found");

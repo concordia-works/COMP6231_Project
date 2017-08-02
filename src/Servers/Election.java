@@ -126,7 +126,7 @@ class Election implements Runnable {
             }
             DatagramPacket datagramPacket = new DatagramPacket(buffer, buffer.length, InetAddress.getLocalHost(), Config.FRONT_END.COEFFICIENT * Config.UDP.PORT_NEW_LEADER);
             socket.send(datagramPacket);
-            System.out.println(this.replicaManagerID.name() + " announces new leader is " + newLeaderID.name());
+//            System.out.println(this.replicaManagerID.name() + " announces new leader is " + newLeaderID.name());
         } catch (Exception e) {
             e.printStackTrace(System.out);
         }
@@ -152,8 +152,8 @@ class Election implements Runnable {
         new Thread(() -> listenToElectionMessage()).start();
 
         try {
-            sleep(20);
-            System.out.println(this.replicaManagerID.name() + " starts new election");
+            sleep(100);
+//            System.out.println(this.replicaManagerID.name() + " starts new election");
             Config.ARCHITECTURE.REPLICAS newLeaderID = startElection();
             announceNewLeader(newLeaderID);
         } catch (InterruptedException e) {
