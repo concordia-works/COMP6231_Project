@@ -12,6 +12,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 
 import org.omg.CORBA.ORB;
 import HelloApp.HelloPOA;
@@ -63,7 +64,7 @@ public class HelloImpl extends HelloPOA {
 
         // Instantiate a teacher record object
         TeacherRecord teacherRecord = new TeacherRecord(firstName, lastName, address, phone, specialization, location);
-        switch(serverName){
+        switch (serverName) {
             case "MTL":
                 teacherRecord.setRecordID(genTeacherID(idGeneratingMTL));
                 idGeneratingMTL = idGeneratingMTL + 3;
@@ -108,7 +109,7 @@ public class HelloImpl extends HelloPOA {
 
         // Instantiate a teacher record object
         StudentRecord studentRecord = new StudentRecord(firstName, lastName, courses, status, statusDate);
-        switch(serverName){
+        switch (serverName) {
             case "MTL":
                 studentRecord.setRecordID(genStudentID(idGeneratingMTL));
                 idGeneratingMTL = idGeneratingMTL + 3;
@@ -486,6 +487,53 @@ public class HelloImpl extends HelloPOA {
 
         return logger;
     }
+
+    public String printAllRecords(String managerID) {
+        String result = "";
+        synchronized (hmap) {
+            for (ArrayList<Record> recordsList : hmap.values()) {
+                for (int i = 0; i < recordsList.size(); i++) {
+                    if (recordsList.get(i).getRecordType() == Record.RECORD_TYPE.TEACHER) {
+                        TeacherRecord teacherRecord = (TeacherRecord) recordsList.get(i);
+                        result += i + " " + String.format(teacherRecord.getRecordID(), teacherRecord.getFirstName(), teacherRecord.getLastName(), teacherRecord.getAdress(), teacherRecord.getPhone(), teacherRecord.getSpecalization(), teacherRecord.getLocation());
+                        result += System.lineSeparator();
+                    } else {
+                        StudentRecord studentRecord = (StudentRecord) recordsList.get(i);
+                        result += i + " " + String.format(studentRecord.getRecordID(), studentRecord.getFirstName(), studentRecord.getLastName(), studentRecord.getCourseRegistered(), studentRecord.getStatus(), studentRecord.getStatusDate());
+                        result += System.lineSeparator();
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    public String printRecord(String managerID, String recordID) {
+        synchronized (hmap) {
+            for (ArrayList<Record> recordsList : hmap.values()) {
+                Iterator<Record> iterator = recordsList.iterator();
+                while (iterator.hasNext()) {
+                    Record recordFound = iterator.next();
+                    if (recordFound.getRecordType() == Record.RECORD_TYPE.TEACHER) {
+                        TeacherRecord teacherRecord = (TeacherRecord) recordFound;
+                        if (teacherRecord.getRecordID().compareTo(recordID) == 0) {
+                            return String.format(recordID, teacherRecord.getFirstName(), teacherRecord.getLastName(), teacherRecord.getAdress(), teacherRecord.getPhone(), teacherRecord.getSpecalization(), teacherRecord.getLocation());
+                        }
+                    }
+                    if (recordFound.getRecordType() == Record.RECORD_TYPE.STUDENT) {
+                        StudentRecord studentRecord = (StudentRecord) recordFound;
+                        if (studentRecord.getRecordID().compareTo(recordID) == 0) {
+                            return String.format(recordID, studentRecord.getFirstName(), studentRecord.getLastName(), studentRecord.getCourseRegistered(), studentRecord.getStatus(), studentRecord.getStatusDate());
+                        }
+                    }
+                }
+
+
+            }
+        }
+        return "";
+    }
+
 
     public void readHashMap(String index) {
         int itemCount = hmap.get(index).size();
