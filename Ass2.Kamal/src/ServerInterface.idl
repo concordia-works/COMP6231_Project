@@ -9,7 +9,8 @@ interface ServerInterface
  string createTRecord(in string manager_id,in string f_name, in string l_name, in string addr, in string number, in string spec,in string loc);
  string createSRecord(in string manager_id,in string f_name, in string l_name, in string courselist, in string status);
  string getRecordCount(in string manager_id) ;
- string display(in string manager_id);
+ string printAllRecords(in string managerID);
+ string printRecord(in string managerID, in string recordID);
  boolean edit(in string manager_id,in string id,in string field_name,in string value);
  boolean transferRecord (in string manager_id,in string record_id, in string remoteCenterServerName);
 };
