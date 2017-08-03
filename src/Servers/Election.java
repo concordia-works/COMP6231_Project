@@ -13,6 +13,9 @@ class Election implements Runnable {
     private Config.ARCHITECTURE.REPLICAS replicaManagerID = null;
     private DatagramSocket listeningSocket;
     private int timeout;
+    private int noOfAliveRM;
+    private static final Object noOfAliveRMLock = new Object();
+    private Config.ARCHITECTURE.REPLICAS currentLeader;
 
     public Election(Config.ARCHITECTURE.REPLICAS replicaManagerID) throws SocketException {
         this.replicaManagerID = replicaManagerID;
@@ -21,35 +24,28 @@ class Election implements Runnable {
         this.timeout = Config.ELECTION.ANSWER_TIMEOUT;
     }
 
-    public Config.ARCHITECTURE.REPLICAS startElection() {
-        Config.ARCHITECTURE.REPLICAS maxReplicaID = this.replicaManagerID;
-        boolean[] replicasStatus = new boolean[Config.ARCHITECTURE.REPLICAS.values().length];
-        if (replicaManagerID != null) {
+    public void startElection() {
+        try {
+            this.noOfAliveRM = 1;
+            currentLeader = this.replicaManagerID;
+
+            boolean[] replicasStatus = new boolean[Config.ARCHITECTURE.REPLICAS.values().length];
             replicasStatus[replicaManagerID.getCoefficient() - 1] = true;
             for (Config.ARCHITECTURE.REPLICAS replicaID : Config.ARCHITECTURE.REPLICAS.values()) {
-                if (replicaID.getCoefficient() > this.replicaManagerID.getCoefficient()) {
+                if (replicaID.getCoefficient() != this.replicaManagerID.getCoefficient()) {
                     Config.ARCHITECTURE.REPLICAS threadReplicaID = replicaID;
                     checkAlive(threadReplicaID, replicasStatus);
                 }
             }
-        } else {
-            for (Config.ARCHITECTURE.REPLICAS replicaID : Config.ARCHITECTURE.REPLICAS.values()) {
-                Config.ARCHITECTURE.REPLICAS threadReplicaID = replicaID;
-                checkAlive(threadReplicaID, replicasStatus);
-            }
-        }
-
-        try {
             // Wait for responses from all alive replicas
             sleep(Config.ELECTION.ELECTION_TIMEOUT);
             for (Config.ARCHITECTURE.REPLICAS replicaID : Config.ARCHITECTURE.REPLICAS.values()) {
                 if (replicasStatus[replicaID.getCoefficient() - 1] == true)
-                    maxReplicaID = replicaID;
+                    currentLeader = replicaID;
             }
         } catch (InterruptedException e) {
             e.printStackTrace(System.out);
         }
-        return maxReplicaID;
     }
 
     private void sendElectionMessage(DatagramSocket socket, Config.ARCHITECTURE.REPLICAS toReplicaID) {
@@ -114,21 +110,25 @@ class Election implements Runnable {
         }
     }
 
-    public void announceNewLeader(Config.ARCHITECTURE.REPLICAS newLeaderID) {
+    public void announceNewLeader() {
         DatagramSocket socket = null;
         try {
             socket = new DatagramSocket();
-            byte[] buffer = newLeaderID.name().getBytes();
+            String announceContent = String.format(Config.ELECTION.ANNOUNCEMENT, noOfAliveRM, currentLeader.name());
+            byte[] buffer = announceContent.getBytes();
             for (Config.ARCHITECTURE.REPLICAS replicaID : Config.ARCHITECTURE.REPLICAS.values()) {
                 DatagramPacket datagramPacket = new DatagramPacket(buffer, buffer.length, InetAddress.getLocalHost(), replicaID.getCoefficient() * Config.UDP.PORT_NEW_LEADER);
                 socket.send(datagramPacket);
-//                System.out.println(this.replicaManagerID.name() + " announce new leader " + newLeaderID.name() + " to " + replicaID.name());
+                System.out.println(this.replicaManagerID.name() + " announce " + noOfAliveRM + " RM alive, new leader " + currentLeader.name() + " to " + replicaID.name());
             }
             DatagramPacket datagramPacket = new DatagramPacket(buffer, buffer.length, InetAddress.getLocalHost(), Config.FRONT_END.COEFFICIENT * Config.UDP.PORT_NEW_LEADER);
             socket.send(datagramPacket);
-//            System.out.println(this.replicaManagerID.name() + " announces new leader is " + newLeaderID.name() + " to FrontEnd");
+            System.out.println(this.replicaManagerID.name() + " announce " + noOfAliveRM + " RM alive, new leader " + currentLeader.name() + " to FrontEnd");
         } catch (Exception e) {
-            e.printStackTrace(System.out);
+            e.printStackTrace(System.err);
+        } finally {
+            if (socket != null)
+                socket.close();
         }
     }
 
@@ -138,11 +138,16 @@ class Election implements Runnable {
                 DatagramSocket socket = new DatagramSocket();
                 sendElectionMessage(socket, threadReplicaID);
                 boolean isReplicaAlive = listenToElectionAnswer(socket);
+                if (isReplicaAlive) {
+                    synchronized (noOfAliveRMLock) {
+                        noOfAliveRM++;
+                    }
+                }
                 synchronized (replicasStatus) {
                     replicasStatus[threadReplicaID.getCoefficient() - 1] = isReplicaAlive;
                 }
             } catch (SocketException e) {
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             }
         }).start();
     }
@@ -152,12 +157,12 @@ class Election implements Runnable {
         new Thread(() -> listenToElectionMessage()).start();
 
         try {
-            sleep(100);
+            sleep(Config.ELECTION.ELECTION_DELAY);
 //            System.out.println(this.replicaManagerID.name() + " starts new election");
-            Config.ARCHITECTURE.REPLICAS newLeaderID = startElection();
-            announceNewLeader(newLeaderID);
+            startElection();
+            announceNewLeader();
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            e.printStackTrace(System.err);
         }
     }
 }

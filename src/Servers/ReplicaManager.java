@@ -26,10 +26,10 @@ import static java.lang.Thread.sleep;
 public class ReplicaManager implements Runnable {
     private Config.ARCHITECTURE.REPLICAS replicaManagerID;
     private int fromFrontEndPort;
-    private int toFrontEndPort;
     private int fromLeaderPort;
     private int fromBackupPort;
     private int heartBeatPort;
+    private int noOfAliveRM;
     private ORB orb;
     private org.omg.CORBA.Object namingContextObj;
     private NamingContextExt namingContextRef;
@@ -52,7 +52,6 @@ public class ReplicaManager implements Runnable {
             switch (replicaManagerID) {
                 case KEN_RO:
                     this.fromFrontEndPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getCoefficient() * Config.UDP.PORT_FRONT_END_TO_LEADER;
-//                    this.toFrontEndPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getCoefficient() * Config.UDP.PORT_LEADER_TO_FRONT_END;
                     this.fromLeaderPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getCoefficient() * Config.UDP.PORT_LEADER_TO_BACKUPS;
                     this.fromBackupPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getCoefficient() * Config.UDP.PORT_BACKUPS_TO_LEADER;
                     this.heartBeatPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getCoefficient() * Config.UDP.PORT_HEART_BEAT;
@@ -61,7 +60,6 @@ public class ReplicaManager implements Runnable {
                     break;
                 case KAMAL:
                     this.fromFrontEndPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getCoefficient() * Config.UDP.PORT_FRONT_END_TO_LEADER;
-//                    this.toFrontEndPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getCoefficient() * Config.UDP.PORT_LEADER_TO_FRONT_END;
                     this.fromLeaderPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getCoefficient() * Config.UDP.PORT_LEADER_TO_BACKUPS;
                     this.fromBackupPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getCoefficient() * Config.UDP.PORT_BACKUPS_TO_LEADER;
                     this.heartBeatPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getCoefficient() * Config.UDP.PORT_HEART_BEAT;
@@ -70,7 +68,6 @@ public class ReplicaManager implements Runnable {
                     break;
                 case MINH:
                     this.fromFrontEndPort = Config.ARCHITECTURE.REPLICAS.MINH.getCoefficient() * Config.UDP.PORT_FRONT_END_TO_LEADER;
-//                    this.toFrontEndPort = Config.ARCHITECTURE.REPLICAS.MINH.getCoefficient() * Config.UDP.PORT_LEADER_TO_FRONT_END;
                     this.fromLeaderPort = Config.ARCHITECTURE.REPLICAS.MINH.getCoefficient() * Config.UDP.PORT_LEADER_TO_BACKUPS;
                     this.fromBackupPort = Config.ARCHITECTURE.REPLICAS.MINH.getCoefficient() * Config.UDP.PORT_BACKUPS_TO_LEADER;
                     this.heartBeatPort = Config.ARCHITECTURE.REPLICAS.MINH.getCoefficient() * Config.UDP.PORT_HEART_BEAT;
@@ -565,11 +562,11 @@ public class ReplicaManager implements Runnable {
                     if (request.getSequenceNumber() == fifo.getExpectedRequestNumber(managerID)) {
                         // Send acknowledgement to the leader
                         acknowledgeToLeader(request);
-//                        System.out.println(replicaManagerID.name() + " acknowledge " + request.getSequenceNumber() + " " + request.getFullInvocation());
+                        System.out.println(replicaManagerID.name() + " acknowledges " + request.getSequenceNumber() + " " + request.getFullInvocation());
 
                         // Re-broadcast the request to the group
                         broadcastToGroup(request);
-//                        System.out.println(replicaManagerID.name() + " broadcasts " + request.getSequenceNumber() + " " + request.getFullInvocation());
+                        System.out.println(replicaManagerID.name() + " re-broadcasts " + request.getSequenceNumber() + " " + request.getFullInvocation());
 
                         // Add the request to the queue, so it can be executed in the next step
                         fifo.holdRequest(managerID, request);
@@ -583,7 +580,7 @@ public class ReplicaManager implements Runnable {
 
                             // Handle the request
                             executeRequest(currentRequest);
-//                            System.out.println(replicaManagerID.name() + " executes " + request.getSequenceNumber() + " " + request.getFullInvocation());
+                            System.out.println(replicaManagerID.name() + " executes " + request.getSequenceNumber() + " " + request.getFullInvocation());
 
                             // If the next request on hold doesn't have the expected sequence number, the loop will end
                             if (fifo.peekFirstRequestHoldNumber(managerID) != fifo.getExpectedRequestNumber(managerID))
@@ -594,11 +591,11 @@ public class ReplicaManager implements Runnable {
                     else if (request.getSequenceNumber() > fifo.getExpectedRequestNumber(managerID)) {
                         // Send acknowledgement to the leader
                         acknowledgeToLeader(request);
-//                        System.out.println(replicaManagerID.name() + " acknowledge " + request.getSequenceNumber() + " " + request.getFullInvocation());
+                        System.out.println(replicaManagerID.name() + " acknowledges " + request.getSequenceNumber() + " " + request.getFullInvocation());
 
                         // Re-broadcast the request to the group
                         broadcastToGroup(request);
-//                        System.out.println(replicaManagerID.name() + " broadcasts " + request.getSequenceNumber() + " " + request.getFullInvocation());
+                        System.out.println(replicaManagerID.name() + " re-broadcasts " + request.getSequenceNumber() + " " + request.getFullInvocation());
 
                         // Save the request to the holdback queue
                         fifo.holdRequest(managerID, request);
@@ -698,8 +695,8 @@ public class ReplicaManager implements Runnable {
             try {
                 synchronized (acknowledgeLock) {
                     int noOfAck = acknowledgementMap.getOrDefault(sequenceNumber, 0);
-//                    System.out.println(sequenceNumber + " has " + noOfAck + " acks");
-                    if (noOfAck == 2)
+                    System.out.println(sequenceNumber + " has " + noOfAck + " acks, waiting for " + (noOfAliveRM - 1) + " acks");
+                    if (noOfAck == (noOfAliveRM - 1))
                         break;
                 }
                 sleep(50);
@@ -716,13 +713,14 @@ public class ReplicaManager implements Runnable {
             byte[] buffer = new byte[1000];
             DatagramPacket datagramPacket = new DatagramPacket(buffer, buffer.length);
             socket.receive(datagramPacket);
-            String datagramContent = new String(datagramPacket.getData()).trim();
-            this.leaderID = Config.ARCHITECTURE.REPLICAS.valueOf(datagramContent);
+            String[] datagramContent = new String(datagramPacket.getData()).trim().split(",");
+            this.leaderID = Config.ARCHITECTURE.REPLICAS.valueOf(datagramContent[1]);
+            noOfAliveRM = Integer.valueOf(datagramContent[0]);
 //            if (leaderID != this.replicaManagerID)
 //                isLeader = false;
 //            else
 //                isLeader = true;
-            System.out.println(this.replicaManagerID.name() + " updates the new leader is " + leaderID.name());
+            System.out.println(this.replicaManagerID.name() + " updates total " + noOfAliveRM + " RM alive, the new leader is " + leaderID.name());
         } catch (Exception e) {
             e.printStackTrace(System.out);
         } finally {

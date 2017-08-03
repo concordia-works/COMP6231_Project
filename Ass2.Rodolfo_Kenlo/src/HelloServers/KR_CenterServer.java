@@ -25,14 +25,14 @@ import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 
 public class KR_CenterServer extends DCMSPOA {
-    private static HashMap<String, ArrayList<Record>> hmap = new HashMap<String, ArrayList<Record>>();
+    private HashMap<String, ArrayList<Record>> hmap = new HashMap<String, ArrayList<Record>>();
     private ORB orb;
     String serverName;
     Logger serverLog;
     static Record obj;
-    private static int idGeneratingMTL = 0;
-    private static int idGeneratingLVL = 1;
-    private static int idGeneratingDDO = 2;
+    private int idGeneratingMTL = 0;
+    private int idGeneratingLVL = 1;
+    private int idGeneratingDDO = 2;
 
     public KR_CenterServer(String serverName) {
         super();
@@ -52,15 +52,15 @@ public class KR_CenterServer extends DCMSPOA {
         // Instantiate a teacher record object
         TeacherRecord teacherRecord = new TeacherRecord(firstName, lastName, address, phone, specialization, location);
         switch (serverName) {
-            case "MTL":
+            case "KR_MTL":
                 teacherRecord.setRecordID(genTeacherID(idGeneratingMTL));
                 idGeneratingMTL = idGeneratingMTL + 3;
                 break;
-            case "LVL":
+            case "KR_LVL":
                 teacherRecord.setRecordID(genTeacherID(idGeneratingLVL));
                 idGeneratingLVL = idGeneratingLVL + 3;
                 break;
-            case "DDO":
+            case "KR_DDO":
                 teacherRecord.setRecordID(genTeacherID(idGeneratingDDO));
                 idGeneratingDDO = idGeneratingDDO + 3;
             default:
@@ -81,8 +81,6 @@ public class KR_CenterServer extends DCMSPOA {
         String id = recordID;
         serverLog.info(msg);
         clientLog(managerID, msg);
-//        System.out.println("Teacher Record " + recordID + " was properly created & logged.");
-
         return id;
     }
 
@@ -95,15 +93,15 @@ public class KR_CenterServer extends DCMSPOA {
         // Instantiate a teacher record object
         StudentRecord studentRecord = new StudentRecord(firstName, lastName, courses, status, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date()));
         switch (serverName) {
-            case "MTL":
+            case "KR_MTL":
                 studentRecord.setRecordID(genStudentID(idGeneratingMTL));
                 idGeneratingMTL = idGeneratingMTL + 3;
                 break;
-            case "LVL":
+            case "KR_LVL":
                 studentRecord.setRecordID(genStudentID(idGeneratingLVL));
                 idGeneratingLVL = idGeneratingLVL + 3;
                 break;
-            case "DDO":
+            case "KR_DDO":
                 studentRecord.setRecordID(genStudentID(idGeneratingDDO));
                 idGeneratingDDO = idGeneratingDDO + 3;
             default:
@@ -118,16 +116,11 @@ public class KR_CenterServer extends DCMSPOA {
         String recordID = studentRecord.getRecordID();
         String operation = " created the student record ";
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-        String msg = timestamp + " | " + managerID + operation + recordID + " on the " + serverName + " Server ";
+//        String msg = timestamp + " | " + managerID + operation + recordID + " on the " + serverName + " Server ";
+        String msg = studentRecord.getRecordID() + " " + studentRecord.getFirstName() + " " + studentRecord.getLastName() + " " + studentRecord.getCourseRegistered() + " " + studentRecord.getStatus() + " " + studentRecord.getStatusDate();
         String id = recordID;
         serverLog.info(msg);
         clientLog(managerID, msg);
-        //Server Console
-//        System.out.println("Student Record " + recordID + " was properly created & logged.");
-
-        // for testing purpose
-        readHashMap(storageIndex);
-
         return id;
     }
 
@@ -140,7 +133,7 @@ public class KR_CenterServer extends DCMSPOA {
         String msg = "";
         // serverName = managerID.substring(0, 3).toUpperCase();
         switch (serverName) {
-            case "MTL":
+            case "KR_MTL":
                 // know my own count
                 int mtlRecordCount = 0;
                 mtlRecordCount = getMyHashMapCount();
@@ -155,7 +148,7 @@ public class KR_CenterServer extends DCMSPOA {
                 //Server Console
 //                System.out.println(countResult);
                 break;
-            case "LVL":
+            case "KR_LVL":
                 int lvlRecordCount = 0;
                 lvlRecordCount = getMyHashMapCount();
                 ddoCount = clientUDP(6787, operation);// ddo
@@ -169,7 +162,7 @@ public class KR_CenterServer extends DCMSPOA {
                 //Server Console
 //                System.out.println(countResult);
                 break;
-            case "DDO":
+            case "KR_DDO":
                 int ddoRecordCount = 0;
                 ddoRecordCount = getMyHashMapCount();
                 lvlCount = clientUDP(6788, operation);// lvl
@@ -184,7 +177,7 @@ public class KR_CenterServer extends DCMSPOA {
 //                System.out.println(countResult);
                 break;
         }
-        return msg;
+        return countResult;
     }
 
     public synchronized boolean editRecord(String managerID, String recordID, String fieldName, String newValue) {
@@ -563,10 +556,9 @@ public class KR_CenterServer extends DCMSPOA {
         return lastName.substring(0, 1).toUpperCase();
     }
 
-    public static String genTeacherID(Integer intCount) {
-        String strCount;
+    public String genTeacherID(int intCount) {
         String strID = "";
-        strCount = intCount.toString();
+        String strCount = String.valueOf(intCount);
         switch (strCount.length()) {
             case 1:
                 strCount = "0000" + strCount;
@@ -595,10 +587,9 @@ public class KR_CenterServer extends DCMSPOA {
         // System.out.println(id);
     }
 
-    public static String genStudentID(Integer intCount) {
-        String strCount;
+    public String genStudentID(int intCount) {
         String strID = "";
-        strCount = intCount.toString();
+        String strCount = String.valueOf(intCount);
         switch (strCount.length()) {
             case 1:
                 strCount = "0000" + strCount;
@@ -627,7 +618,7 @@ public class KR_CenterServer extends DCMSPOA {
         // System.out.println(id);
     }
 
-    public static ArrayList<String> fixArrayT(String[] spec) {
+    public ArrayList<String> fixArrayT(String[] spec) {
         ArrayList<String> specialization = new ArrayList<String>();
         int count = 0;
         for (int x = 0; x < specialization.size(); x++) {
@@ -642,7 +633,7 @@ public class KR_CenterServer extends DCMSPOA {
     }
 
 
-    public static ArrayList<String> fixArrayS(String[] cr) {
+    public ArrayList<String> fixArrayS(String[] cr) {
         ArrayList<String> courses = new ArrayList<String>();
         int count = 0;
         for (int x = 0; x < courses.size(); x++) {
@@ -656,7 +647,7 @@ public class KR_CenterServer extends DCMSPOA {
         return courses;
     }
 
-    public static Integer getMyHashMapCount() {
+    public Integer getMyHashMapCount() {
         Integer alCountSum = 0;
 
         for (String key : hmap.keySet()) {
@@ -691,8 +682,7 @@ public class KR_CenterServer extends DCMSPOA {
             DatagramPacket reply = new DatagramPacket(buffer, buffer.length);
             aSocket.receive(reply);
 //            System.out.println("clientUDP received: " + new String(reply.getData()));
-            returnMsg = new String(reply.getData());
-
+            returnMsg = new String(reply.getData()).trim();
         } catch (SocketException e) {
             e.printStackTrace(System.err);
         } catch (IOException e) {
@@ -777,7 +767,7 @@ public class KR_CenterServer extends DCMSPOA {
         }
     }
 
-    public static String concatenate(Record obj, String managerID) {
+    public String concatenate(Record obj, String managerID) {
         String inf = "";
 
         if (obj.getRecordType() == Record.RECORD_TYPE.STUDENT) {
@@ -795,7 +785,7 @@ public class KR_CenterServer extends DCMSPOA {
         return inf;
     }
 
-    public static String[] fixArray(String[] spec) {
+    public String[] fixArray(String[] spec) {
         // [ A ]
         spec[0] = spec[0].replace("[", "");
         spec[spec.length - 1] = spec[spec.length - 1].replace("]", "");

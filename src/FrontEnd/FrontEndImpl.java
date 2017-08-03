@@ -100,8 +100,8 @@ public class FrontEndImpl extends FEPOA {
                 DatagramPacket datagramPacket = new DatagramPacket(buffer, buffer.length);
 //                System.out.println("FrontEnd listens to new leader");
                 socket.receive(datagramPacket);
-                String datagramContent = new String(datagramPacket.getData()).trim();
-                Config.ARCHITECTURE.REPLICAS newLeaderID = Config.ARCHITECTURE.REPLICAS.valueOf(datagramContent);
+                String[] datagramContent = new String(datagramPacket.getData()).trim().split(",");
+                Config.ARCHITECTURE.REPLICAS newLeaderID = Config.ARCHITECTURE.REPLICAS.valueOf(datagramContent[1]);
                 this.leaderPort = newLeaderID.getCoefficient() * Config.UDP.PORT_FRONT_END_TO_LEADER;
                 System.out.println("FrontEnd updates the new leader is " + newLeaderID.name());
             }
