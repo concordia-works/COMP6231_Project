@@ -1,9 +1,0 @@
-2017-08-02 17:22:13.911 | MTL1111 created the student record null on the KR_MTL Server 
-2017-08-02 17:24:59.081 | MTL1111 created the student record null on the KR_MTL Server 
-2017-08-02 17:29:14.222 | MTL1111 created the student record null on the KR_MTL Server 
-2017-08-02 17:31:33.04 | MTL1111 created the student record null on the KR_MTL Server 
-2017-08-02 17:31:49.363 | MTL1111 created the student record null on the KR_MTL Server 
-2017-08-02 17:32:52.194 | MTL1111 created the teacher record null on the KR_MTL Server 
-2017-08-02 17:36:05.678 | MTL1111 created the student record null on the KR_MTL Server 
-2017-08-02 17:36:21.004 | MTL1111 created the teacher record null on the KR_MTL Server 
-2017-08-02 17:37:50.325 | MTL1111 created the student record null on the KR_MTL Server 
