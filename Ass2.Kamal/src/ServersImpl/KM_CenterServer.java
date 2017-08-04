@@ -36,33 +36,29 @@ public class KM_CenterServer extends DCMSPOA {
 
     Logger logger = Logger.getLogger(Logger.class.getName());            //instance of Logger class
 
-
     HashMap<Character, ArrayList<Record>> map = new HashMap<Character, ArrayList<Record>>();    //hashmap of type character as key and arraylist as value
-
 
     public KM_CenterServer() throws RemoteException {
         super();
     }                            //default constructor
 
-
     public void setOrb(ORB orb_value) {
         orb = orb_value;
     }
-
 
     public KM_CenterServer(String x) throws RemoteException                          //Constructor overloaded
     {
         server_name = x;
 
-        if (x.equals("MTL")) {
+        if (x.equals("KM_MTL")) {
             rmi_port = 2964;
             udp_port = 5434;
             recordIDGenerator = 0;
-        } else if (x.equals("LVL")) {
+        } else if (x.equals("KM_LVL")) {
             rmi_port = 2965;
             udp_port = 5439;
             recordIDGenerator = 1;
-        } else if (x.equals("DDO")) {
+        } else if (x.equals("KM_DDO")) {
             rmi_port = 2966;
             udp_port = 5436;
             recordIDGenerator = 2;
@@ -154,7 +150,7 @@ public class KM_CenterServer extends DCMSPOA {
             insert(r, first);
             result = record_id;
         }         //calls insert method to insert the new record	success_flag=true;
-        logger.info("Teacher record created by " + manager_id);
+//        logger.info("Teacher record created by " + manager_id);
         return result;
     }
 
@@ -177,39 +173,40 @@ public class KM_CenterServer extends DCMSPOA {
             result = record_id;
         }
         success_flag = true;
-        logger.info("Student record created by " + manager_id);
+//        logger.info("Student record created by " + manager_id);
         return result;
     }
-
 
     public String printAllRecords(String manager_id)                                            //displays all the records on a server
     {
         StringBuffer str = new StringBuffer();
-        String result = "";
+        String result;
         for (Map.Entry<Character, ArrayList<Record>> entry : map.entrySet()) {
-            str.append("[" + entry.getKey() + "]");
             for (Record x : entry.getValue()) {
                 str.append((x));
                 str.append("\n");
             }
         }
         result = str.toString();
-        logger.info("Display function performed by " + manager_id);
+        if (result.compareTo("") == 0)
+            return "There is no record to print";
+//        logger.info("Display function performed by " + manager_id);
         return result;
     }
 
     public String printRecord(String managerID, String recordID)                                            //displays all the records on a server
     {
-        System.out.println("inside print record");
+        boolean isFound = false;
+//        System.out.println("inside print record");
         StringBuffer str = new StringBuffer();
         String result = "";
         for (Map.Entry<Character, ArrayList<Record>> entry : map.entrySet()) {
             synchronized (lockID) {
                 for (Record x : entry.getValue()) {
                     if (recordID.equals(x.record_id)) {
-                        System.out.println("inside if");
+//                        System.out.println("inside if");
+                        isFound = true;
                         str.append("[" + entry.getKey() + "]");
-
                         str.append((x));
                         str.append("\n");
                     }
@@ -217,46 +214,51 @@ public class KM_CenterServer extends DCMSPOA {
             }
         }
         result = str.toString();
-        logger.info("Display function performed by " + managerID);
+//        logger.info("Display function performed by " + managerID);
+        if (!isFound)
+            return "There is no record to print";
         return result;
     }
 
-    public synchronized String getRecordCounts(String manager_id)                //returns the total number of records on all the servers
-    {
+    public synchronized String getRecordCounts(String manager_id) {               //returns the total number of records on all the servers
         String result_value = "";
         try {
             int record_count = this.total_no_of_records();
-            count_result[0] = this.server_name + " " + Integer.toString(record_count);
             String[] result = {""};
             switch (server_name) {
-                case "MTL": {
+                case "KM_MTL": {
+                    count_result[0] = "MTL: " + Integer.toString(record_count);
                     result = send_and_recieve_packets(5436, 5439); //calls send_and_recieve_packets method to recieve count from other two servers
-                    count_result[1] = " LVL:" + result[0];
-                    count_result[2] = " DDO:" + result[1];
+                    count_result[1] = " LVL: " + result[0];
+                    count_result[2] = " DDO: " + result[1];
                     break;
                 }
 
-                case "LVL":
+                case "KM_LVL":
+                    count_result[0] = "LVL: " + Integer.toString(record_count);
                     result = send_and_recieve_packets(5434, 5436);
-                    count_result[1] = " MTL:" + result[0];
-                    count_result[2] = " DDO:" + result[1];
+                    count_result[1] = " MTL: " + result[0];
+                    count_result[2] = " DDO: " + result[1];
                     break;
 
-                case "DDO":
+                case "KM_DDO":
+                    count_result[0] = "DDO: " + Integer.toString(record_count);
                     result = send_and_recieve_packets(5434, 5439);
-                    count_result[1] = " MTL:" + result[0];
-                    count_result[2] = " LVL:" + result[1];
+                    count_result[1] = " MTL: " + result[0];
+                    count_result[2] = " LVL: " + result[1];
                     break;
             }
             result_value = count_result[0] + " " + count_result[1] + " " + count_result[2];
-            logger.info("gerRecordCount function performed by user " + manager_id + "  " + count_result[0] + count_result[1] + count_result[2]);
+//            logger.info("gerRecordCount function performed by user " + manager_id + "  " + count_result[0] + count_result[1] + count_result[2]);
         } catch (Exception e) {
+            e.printStackTrace(System.err);
         }
         return result_value;
     }
 
     public boolean editRecord(String manager_id, String id, String field_name, String value)            //edit the record with given record id
     {
+        success_flag = false;
         for (Map.Entry<Character, ArrayList<Record>> entry : map.entrySet()) {
             synchronized (lockID) {
                 for (Record x : entry.getValue()) {
@@ -266,19 +268,19 @@ public class KM_CenterServer extends DCMSPOA {
                             if (field_name.equals("address")) {
                                 x.address = value;
                                 success_flag = true;
-                                logger.info("Address is edited for record id:" + record_id + " by " + manager_id);
+//                                logger.info("Address is edited for record id:" + record_id + " by " + manager_id);
 
                             } else if (field_name.equals("phone")) {
                                 x.phone = value;
                                 success_flag = true;
-                                logger.info("Phone no is edited for record id:" + record_id + "by " + manager_id);
+//                                logger.info("Phone no is edited for record id:" + record_id + "by " + manager_id);
                             } else if (field_name.equals("location")) {
-                                if (value.equals("mtl") || value.equals("lvl") || value.equals("ddo")) {
+                                if (value.equals("MTL") || value.equals("LVL") || value.equals("DDO")) {
                                     x.location = value;
                                     success_flag = true;
-                                    logger.info("Location is edited for record id:" + record_id + " by " + manager_id);
+//                                    logger.info("Location is edited for record id:" + record_id + " by " + manager_id);
                                 } else {
-                                    logger.info("Operation failed:invalid location");
+//                                    logger.info("Operation failed:invalid location");
                                     success_flag = false;
                                 }
                             }
@@ -286,20 +288,20 @@ public class KM_CenterServer extends DCMSPOA {
                         {
                             if (field_name.equals("status")) {
 
-                                if (value.equals("active") || value.equals("deactive")) {
+                                if (value.equals("Active") || value.equals("DeActive")) {
                                     x.status = value;
                                     x.date = new Date(System.currentTimeMillis()).toString();
                                     success_flag = true;
-                                    logger.info("Status is edited for record id:" + record_id + " by " + manager_id);
+//                                    logger.info("Status is edited for record id:" + record_id + " by " + manager_id);
 
                                 } else {
                                     success_flag = false;
-                                    logger.info("Status edit failed by " + manager_id);
+//                                    logger.info("Status edit failed by " + manager_id);
                                 }
-                            } else if (field_name.equals("courses_Registered")) {
+                            } else if (field_name.equals("coursesRegistered")) {
                                 x.courses_Registered = value;
                                 success_flag = true;
-                                logger.info("Corses_Registered is edited for record id:" + record_id + " by " + manager_id);
+//                                logger.info("Courses_Registered is edited for record id:" + record_id + " by " + manager_id);
 
                             } else {
                                 success_flag = false;
@@ -314,63 +316,62 @@ public class KM_CenterServer extends DCMSPOA {
     }
 
 
-    public void startUDPServer()                        //starts the udp server on given port
-    {
+    public void startUDPServer() {                       //starts the udp server on given port
         try {
             ds = new DatagramSocket(udp_port);
-        while (true) {
-            byte[] a = new byte[2000];
-            DatagramPacket data_packet = new DatagramPacket(a, a.length);
-            ds.receive(data_packet);                                            //data is recieved in data packet
-            DatagramSocket socket = ds;
+            while (true) {
+                byte[] a = new byte[2000];
+                DatagramPacket data_packet = new DatagramPacket(a, a.length);
+                ds.receive(data_packet);                                            //data is recieved in data packet
+                DatagramSocket socket = ds;
 
-            try {
-                String data = new String(data_packet.getData());
-                if (data.trim().equals("count")) {                        //to recieve message count, to send record count
-                    int count = total_no_of_records();
-                    byte[] b = (count + "").getBytes();
-                    DatagramPacket data_packet_respone = new DatagramPacket(b, b.length, data_packet.getAddress(), data_packet.getPort());
-                    socket.send(data_packet_respone);
-                } else {//to recieve transfered record
-                    System.out.println(data);
-                    String fields[] = data.split("\\|");
-                    String record_id = fields[0];
-                    String f_name = fields[1];
-                    String l_name = fields[2];
+                try {
+                    String data = new String(data_packet.getData());
+                    if (data.trim().equals("count")) {                        //to recieve message count, to send record count
+                        int count = total_no_of_records();
+                        byte[] b = (count + "").getBytes();
+                        DatagramPacket data_packet_respone = new DatagramPacket(b, b.length, data_packet.getAddress(), data_packet.getPort());
+                        socket.send(data_packet_respone);
+                    } else {//to recieve transfered record
+//                        System.out.println(data);
+                        String fields[] = data.split("\\|");
+                        String record_id = fields[0];
+                        String f_name = fields[1];
+                        String l_name = fields[2];
 
-                    if (record_id.contains("SR")) {                        //if record is student record
-                        String courses = fields[4];
-                        String status = fields[3];
-                        String date = fields[5];
+                        if (record_id.contains("SR")) {                        //if record is student record
+                            String courses = fields[4];
+                            String status = fields[3];
+                            String date = fields[5];
 
-                        new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-                                transferSRecord("server", record_id, f_name, l_name, courses, status);
-                            }
-                        }).start();
-                        //createSRecord() is called
-                    } else {
+                            new Thread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    transferSRecord("server", record_id, f_name, l_name, courses, status);
+                                }
+                            }).start();
+                            //createSRecord() is called
+                        } else {
 
-                        System.out.println("inside else");//if record id teacher record
-                        String addr = fields[3];
-                        String phone = fields[4];
-                        String spec = fields[5];
-                        String loc = fields[6];
-                        new Thread(new Runnable() {
-                            @Override
-                            public void run() {
-                                transferTRecord("server", record_id, f_name, l_name, addr, phone, spec, loc);
-                            }
-                        }).start();      //createTRecord() is called
+//                            System.out.println("inside else");//if record id teacher record
+                            String addr = fields[3];
+                            String phone = fields[4];
+                            String spec = fields[5];
+                            String loc = fields[6];
+                            new Thread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    transferTRecord("server", record_id, f_name, l_name, addr, phone, spec, loc);
+                                }
+                            }).start();      //createTRecord() is called
+                        }
                     }
+
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
 
-            } catch (Exception e) {
-                e.printStackTrace();
             }
-
-        }
         } catch (SocketException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -399,7 +400,7 @@ public class KM_CenterServer extends DCMSPOA {
                         try {
                             record_to_be_transfered = record;
 
-                            String y = record_to_be_transfered.toString();            //record coverted into string
+                            String y = record_to_be_transfered.toString();            //record converted into string
                             byte array[] = y.getBytes();                                //String is converted into byte array
                             InetAddress host = InetAddress.getLocalHost();
                             ds = new DatagramSocket();
@@ -429,7 +430,6 @@ public class KM_CenterServer extends DCMSPOA {
         return success_flag;
     }
 
-
     private String transferTRecord(String manager_id, String record_id, String f_name, String l_name, String addr, String number, String spec, String loc) {                                                                                    //creates the teacher record
         String result = "";
         synchronized (lockID) {
@@ -441,7 +441,7 @@ public class KM_CenterServer extends DCMSPOA {
             insert(r, first);
             result = record_id;
         }         //calls insert method to insert the new record	success_flag=true;
-        logger.info("Teacher record created by " + manager_id);
+//        logger.info("Teacher record created by " + manager_id);
         return result;
     }
 
@@ -460,7 +460,7 @@ public class KM_CenterServer extends DCMSPOA {
             result = record_id;
         }
         success_flag = true;
-        logger.info("Student record created by " + manager_id);
+//        logger.info("Student record created by " + manager_id);
         return result;
     }
 

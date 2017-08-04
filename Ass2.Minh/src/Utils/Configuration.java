@@ -36,6 +36,7 @@ public class Configuration {
     public static final String DATE_TIME_FORMAT = "yyyy-MM-dd HH:mm:ss.SSS";
     public static final String PRINT_TEACHER_RECORD = "%s: Name(%s %s) Address(%s) Phone(%s) Specialization(%s) Location(%s)";
     public static final String PRINT_STUDENT_RECORD = "%s: Name(%s %s) CoursesRegistered(%s) Status(%s) StatusDate(%s)";
+    public static final String NO_RECORD_PRINT = "There is no record to print";
 
     // Logging
     public static final String LOG_SERVER_FILENAME = "server_%s.log";

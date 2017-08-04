@@ -8,9 +8,9 @@ public class Config {
 
     public static class ARCHITECTURE {
         public enum REPLICAS {
-            MINH(1), KAMAL(2), KEN_RO(3);
+//            MINH(1), KAMAL(2), KEN_RO(3);
 //            KEN_RO(1), MINH(2), KAMAL(3);
-//            KAMAL(1), KEN_RO(2), MINH(3);
+            KAMAL(1), KEN_RO(2), MINH(3);
 
             private final int coefficient;
             REPLICAS(int coefficient) { this.coefficient = coefficient; }
@@ -91,6 +91,19 @@ public class Config {
                 "0. Back" + System.lineSeparator() +
                 "1. Multi-threads create new records concurrently" + System.lineSeparator() +
                 "2. Multi-threads edit, print and transfer the same record concurrently" + System.lineSeparator() +
+                "Your choice: ";
+
+        public static final String STATUS_MENU = System.lineSeparator() +
+                "Select status" + System.lineSeparator() +
+                "1. Active" + System.lineSeparator() +
+                "2. DeActive" + System.lineSeparator() +
+                "Your choice: ";
+
+        public static final String LOCATION_MENU = System.lineSeparator() +
+                "Select location" + System.lineSeparator() +
+                "1. MTL" + System.lineSeparator() +
+                "2. LVL" + System.lineSeparator() +
+                "3. DDO" + System.lineSeparator() +
                 "Your choice: ";
     }
 

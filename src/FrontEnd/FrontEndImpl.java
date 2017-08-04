@@ -61,7 +61,7 @@ public class FrontEndImpl extends FEPOA {
 
     @Override
     public String printRecord(String managerID, String recordID) {
-        Request request = new Request(fifo.generateRequestNumber(managerID), managerID, Config.REQUEST.METHODS_NAME.printRecord);
+        Request request = new Request(fifo.generateRequestNumber(managerID), managerID, Config.REQUEST.METHODS_NAME.printRecord, recordID);
 //        System.out.println(request.getFullInvocation());
         return sendAndGetResponse(request);
     }
@@ -78,9 +78,9 @@ public class FrontEndImpl extends FEPOA {
         try {
             unicast = new Unicast(leaderPort);
             unicast.send(request);
-            System.out.println("Forward " + request.getFullInvocation() + " to port " + leaderPort);
+            System.out.println("Forward " + request.getSequenceNumber() + " " + request.getFullInvocation() + " to port " + leaderPort);
             Response response = unicast.receive();
-            System.out.println("Receive answer for " + request.getFullInvocation() + " is " + response.getContent());
+            System.out.println("Receive answer for " + request.getSequenceNumber() + " " + request.getFullInvocation() + " is " + response.getContent());
             return response.getContent();
         } catch (Exception e) {
             e.printStackTrace(System.out);

@@ -34,6 +34,7 @@ public class ReplicaManager implements Runnable {
     private org.omg.CORBA.Object namingContextObj;
     private NamingContextExt namingContextRef;
     private FIFO fifo;
+    private final Object fifoLock = new Object();
     private Config.ARCHITECTURE.REPLICAS leaderID;
     private Map<Integer, Integer> acknowledgementMap;
     private static final Object acknowledgeLock = new Object();
@@ -326,7 +327,7 @@ public class ReplicaManager implements Runnable {
                 new Thread(() -> {
                     // Rebuild the request object
                     Request request = Config.deserializeRequest(requestPacket.getData());
-                    System.out.println(replicaManagerID.name() + " receives " + request.getSequenceNumber() + " " + request.getFullInvocation() + " from FrontEnd");
+                    System.out.println(replicaManagerID.name() + ": receives " + request.getSequenceNumber() + " " + request.getFullInvocation() + " from FrontEnd");
 
                     synchronized (frontEndPortsLock) {
                         frontEndPortsMap.put(request.getSequenceNumber(), requestPacket.getPort());
@@ -334,54 +335,59 @@ public class ReplicaManager implements Runnable {
 
                     String managerID = request.getManagerID();
                     Response response;
-                    if (request.getSequenceNumber() == fifo.getExpectedRequestNumber(managerID)) { // This request is the one expected
-                        // Add the request to the queue, so it can be executed in the next step
-                        fifo.holdRequest(managerID, request);
+                    synchronized (fifoLock) {
+                        // This request is the one expected
+                        if (request.getSequenceNumber() == fifo.getExpectedRequestNumber(managerID)) {
+                            // Add the request to the queue, so it can be executed in the next step
+                            fifo.holdRequest(managerID, request);
 
-                        // Execute this request and the continuous chain of requests after it hold in the queue
-                        while (true) {
-                            Request currentRequest = fifo.popNextRequest(managerID);
+                            // Execute this request and the continuous chain of requests after it hold in the queue
+                            while (true) {
+                                Request currentRequest = fifo.popNextRequest(managerID);
 
-                            // Increase the expected sequence number by 1
-                            fifo.generateRequestNumber(managerID);
+                                // Increase the expected sequence number by 1
+                                fifo.generateRequestNumber(managerID);
 
-                            // Handle the request
-                            response = executeRequest(currentRequest);
-                            System.out.println(replicaManagerID.name() + " executes " + request.getSequenceNumber() + " " + request.getFullInvocation());
-                            /**
-                             * Only broadcast requests if the leader executes the request successfully
-                             * If the leader succeeds, the response to client will be successful
-                             * As long as a RM can proceed the request, clients still get the successful result
-                             * Leader waits for acknowledgements from both backups then answers FrontEndImpl
-                             */
-                            // Send the result to backups & wait for acknowledgements
-                            if (response.isSuccess()) {
+                                // Handle the request
+                                response = executeRequest(currentRequest);
+                                System.out.println(replicaManagerID.name() + ": executes " + request.getSequenceNumber() + " " + request.getFullInvocation());
+//                            /**
+//                             * Only broadcast requests if the leader executes the request successfully
+//                             * If the leader succeeds, the response to client will be successful
+//                             * As long as a RM can proceed the request, clients still get the successful result
+//                             * Leader waits for acknowledgements from both backups then answers FrontEndImpl
+//                             */
+//                            // Send the result to backups & wait for acknowledgements
+//                            if (response.isSuccess()) {
                                 // Broadcast using FIFO multicast
                                 broadcastToGroup(currentRequest);
                                 System.out.println(replicaManagerID.name() + " broadcasts " + request.getSequenceNumber() + " " + request.getFullInvocation());
 
                                 // Check backups' acknowledgement
                                 waitForEnoughAcknowledgement(currentRequest);
-                                System.out.println(replicaManagerID.name() + " receives all acknowledgements of " + request.getSequenceNumber() + " " + request.getFullInvocation());
+//                                System.out.println(replicaManagerID.name() + " receives all acknowledgements of " + request.getSequenceNumber() + " " + request.getFullInvocation());
+//                            }
+
+                                // Response to FrontEndImpl
+                                responseToFrontEnd(response);
+
+                                // If the next request on hold doesn't have the expected sequence number, the loop will end
+                                if (fifo.peekFirstRequestHoldNumber(managerID) != fifo.getExpectedRequestNumber(managerID))
+                                    break;
                             }
-
-                            // Response to FrontEndImpl
-                            responseToFrontEnd(response);
-
-                            // If the next request on hold doesn't have the expected sequence number, the loop will end
-                            if (fifo.peekFirstRequestHoldNumber(managerID) != fifo.getExpectedRequestNumber(managerID))
-                                break;
                         }
-                    } else if (request.getSequenceNumber() > fifo.getExpectedRequestNumber(managerID)) { // There're other requests must come before this request
-                        // Save the request to the holdback queue
-                        fifo.holdRequest(managerID, request);
+                        // There're other requests must come before this request
+                        else if (request.getSequenceNumber() > fifo.getExpectedRequestNumber(managerID)) {
+                            // Save the request to the holdback queue
+                            fifo.holdRequest(managerID, request);
 
-                        /**
-                         * How to take care of the situation
-                         * When the request is put to the queue
-                         * But will never be execute until a new request is sent???
-                         */
-                    } // Else the request is duplicated, ignore it
+                            /**
+                             * How to take care of the situation
+                             * When the request is put to the queue
+                             * But will never be execute until a new request is sent???
+                             */
+                        } // Else the request is duplicated, ignore it
+                    }
                 }).start();
             }
         } catch (Exception e) {
@@ -466,6 +472,7 @@ public class ReplicaManager implements Runnable {
                 default:
                     break;
             }
+
             DCMS dcmsServer = DCMSHelper.narrow(namingContextRef.resolve_str(serverName));
             String result = "";
             boolean isSuccess = false;
@@ -555,57 +562,67 @@ public class ReplicaManager implements Runnable {
                      */
                     // Rebuild the request object
                     Request request = Config.deserializeRequest(requestPacket.getData());
-//                    System.out.println(replicaManagerID.name() + " receives " + request.getSequenceNumber() + " " + request.getFullInvocation() + " from Leader");
                     String managerID = request.getManagerID();
 
-                    // This request is the one expected
-                    if (request.getSequenceNumber() == fifo.getExpectedRequestNumber(managerID)) {
-                        // Send acknowledgement to the leader
-                        acknowledgeToLeader(request);
-                        System.out.println(replicaManagerID.name() + " acknowledges " + request.getSequenceNumber() + " " + request.getFullInvocation());
+                    /**
+                     * Lock fifo to prevent the case backup receive the re-broadcast request
+                     * but hasn't execute the 1st request and increase expected sequence number
+                     */
+                    synchronized (fifoLock) {
+                        // This request is the one expected
+                        if (request.getSequenceNumber() == fifo.getExpectedRequestNumber(managerID)) {
+                            System.out.println(replicaManagerID.name() + ": receives " + request.getSequenceNumber() + " " + request.getFullInvocation() + " from Leader");
+                            // Send acknowledgement to the leader
+                            acknowledgeToLeader(request);
+                            System.out.println(replicaManagerID.name() + ": acknowledges " + request.getSequenceNumber() + " " + request.getFullInvocation());
 
-                        // Re-broadcast the request to the group
-                        broadcastToGroup(request);
-                        System.out.println(replicaManagerID.name() + " re-broadcasts " + request.getSequenceNumber() + " " + request.getFullInvocation());
+                            // Re-broadcast the request to the group
+                            broadcastToGroup(request);
+                            System.out.println(replicaManagerID.name() + ": re-broadcasts " + request.getSequenceNumber() + " " + request.getFullInvocation());
 
-                        // Add the request to the queue, so it can be executed in the next step
-                        fifo.holdRequest(managerID, request);
+                            // Add the request to the queue, so it can be executed in the next step
+                            fifo.holdRequest(managerID, request);
 
-                        // Execute this request and the continuous chain of requests after it hold in the queue
-                        while (true) {
-                            Request currentRequest = fifo.popNextRequest(managerID);
+                            // Execute this request and the continuous chain of requests after it hold in the queue
+                            while (true) {
+                                Request currentRequest = fifo.popNextRequest(managerID);
 
-                            // Increase the expected sequence number by 1
-                            fifo.generateRequestNumber(managerID);
+                                // Increase the expected sequence number by 1
+                                fifo.generateRequestNumber(managerID);
 
-                            // Handle the request
-                            executeRequest(currentRequest);
-                            System.out.println(replicaManagerID.name() + " executes " + request.getSequenceNumber() + " " + request.getFullInvocation());
+                                // Handle the request
+                                executeRequest(currentRequest);
+                                System.out.println(replicaManagerID.name() + ": executes " + request.getSequenceNumber() + " " + request.getFullInvocation());
 
-                            // If the next request on hold doesn't have the expected sequence number, the loop will end
-                            if (fifo.peekFirstRequestHoldNumber(managerID) != fifo.getExpectedRequestNumber(managerID))
-                                break;
+                                // If the next request on hold doesn't have the expected sequence number, the loop will end
+                                if (fifo.peekFirstRequestHoldNumber(managerID) != fifo.getExpectedRequestNumber(managerID))
+                                    break;
+                            }
+                        }
+                        // There're other requests must come before this request
+                        else if (request.getSequenceNumber() > fifo.getExpectedRequestNumber(managerID)) {
+                            // Send acknowledgement to the leader
+                            acknowledgeToLeader(request);
+                            System.out.println(replicaManagerID.name() + ": acknowledges " + request.getSequenceNumber() + " " + request.getFullInvocation());
+
+                            // Re-broadcast the request to the group
+                            broadcastToGroup(request);
+                            System.out.println(replicaManagerID.name() + ": re-broadcasts " + request.getSequenceNumber() + " " + request.getFullInvocation());
+
+                            // Save the request to the holdback queue
+                            fifo.holdRequest(managerID, request);
+
+                            /**
+                             * How to take care of the situation
+                             * When the request is put to the queue
+                             * But will never be execute until a new request is sent???
+                             */
+                        }
+                        else {
+                            // Else the request is duplicated, ignore it
+                            System.out.println(replicaManagerID.name() + ": re-receives " + request.getSequenceNumber() + " " + request.getFullInvocation() + " from Leader");
                         }
                     }
-                    // There're other requests must come before this request
-                    else if (request.getSequenceNumber() > fifo.getExpectedRequestNumber(managerID)) {
-                        // Send acknowledgement to the leader
-                        acknowledgeToLeader(request);
-                        System.out.println(replicaManagerID.name() + " acknowledges " + request.getSequenceNumber() + " " + request.getFullInvocation());
-
-                        // Re-broadcast the request to the group
-                        broadcastToGroup(request);
-                        System.out.println(replicaManagerID.name() + " re-broadcasts " + request.getSequenceNumber() + " " + request.getFullInvocation());
-
-                        // Save the request to the holdback queue
-                        fifo.holdRequest(managerID, request);
-
-                        /**
-                         * How to take care of the situation
-                         * When the request is put to the queue
-                         * But will never be execute until a new request is sent???
-                         */
-                    } // Else the request is duplicated, ignore it
                 }).start();
             }
         } catch (Exception e) {
@@ -696,8 +713,11 @@ public class ReplicaManager implements Runnable {
                 synchronized (acknowledgeLock) {
                     int noOfAck = acknowledgementMap.getOrDefault(sequenceNumber, 0);
                     System.out.println(sequenceNumber + " has " + noOfAck + " acks, waiting for " + (noOfAliveRM - 1) + " acks");
-                    if (noOfAck == (noOfAliveRM - 1))
+                    if (noOfAck >= (noOfAliveRM - 1)) {
+                        acknowledgementMap.remove(sequenceNumber);
                         break;
+                    }
+
                 }
                 sleep(50);
             } catch (InterruptedException e) {
@@ -720,7 +740,7 @@ public class ReplicaManager implements Runnable {
 //                isLeader = false;
 //            else
 //                isLeader = true;
-            System.out.println(this.replicaManagerID.name() + " updates total " + noOfAliveRM + " RM alive, the new leader is " + leaderID.name());
+            System.out.println(this.replicaManagerID.name() + ": " + noOfAliveRM + " RMs alive, new leader is " + leaderID.name());
         } catch (Exception e) {
             e.printStackTrace(System.out);
         } finally {

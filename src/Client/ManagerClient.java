@@ -541,13 +541,13 @@ public class ManagerClient {
                 String result = frontEnd.editRecord(managerID, recordID, "phone", "edited phone");
                 client.writeLog(result);
             } catch (IOException e) {
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             } catch (CannotProceed cannotProceed) {
-                cannotProceed.printStackTrace();
+                cannotProceed.printStackTrace(System.err);
             } catch (InvalidName invalidName) {
-                invalidName.printStackTrace();
+                invalidName.printStackTrace(System.err);
             } catch (NotFound notFound) {
-                notFound.printStackTrace();
+                notFound.printStackTrace(System.err);
             }
         }).start();
     }
@@ -559,8 +559,7 @@ public class ManagerClient {
         String lastName = sc.nextLine();
         System.out.print("Enter Courses registered: ");
         String coursesRegistered = sc.nextLine();
-        System.out.print("Enter Status: ");
-        String status = sc.nextLine();
+        String status = inputStatus();
         String result = frontEnd.createSRecord(managerID, firstName, lastName, coursesRegistered, status);
         LOGGER.info(result);
         System.out.println(result);
@@ -577,8 +576,7 @@ public class ManagerClient {
         String phone = sc.nextLine();
         System.out.print("Enter Specialization: ");
         String specialization = sc.nextLine();
-        System.out.print("Enter Location: ");
-        String location = sc.nextLine();
+        String location = inputLocation();
         String result = frontEnd.createTRecord(managerID, firstName, lastName, address, phone, specialization, location);
         LOGGER.info(result);
         System.out.println(result);
@@ -601,6 +599,7 @@ public class ManagerClient {
             System.out.print("Your choice: ");
             input = Integer.parseInt(sc.nextLine());
             fieldName = StudentRecord.Mutable_Fields.values()[--input].name();
+//            System.out.println(fieldName);
         } else if (recordID.substring(0, 2).compareTo("TR") == 0) {
             int i = 1;
             System.out.println(System.lineSeparator());
@@ -617,8 +616,19 @@ public class ManagerClient {
             return;
         }
 
-        System.out.print("Enter Value: ");
-        String value = sc.nextLine();
+        String value;
+        switch (fieldName) {
+            case "status":
+                value = inputStatus();
+                break;
+            case "location":
+                value = inputLocation();
+                break;
+            default:
+                System.out.print("Enter Value: ");
+                value = sc.nextLine();
+                break;
+        }
 
         String result = frontEnd.editRecord(managerID, recordID, fieldName, value);
         LOGGER.info(result);
@@ -628,8 +638,7 @@ public class ManagerClient {
     private void transferRecord(FE frontEnd) {
         System.out.print("Enter Record ID: ");
         String recordID = sc.nextLine().toUpperCase();
-        System.out.print("Enter Server Name: ");
-        String serverName = sc.nextLine().toUpperCase();
+        String serverName = inputLocation();
         String result = frontEnd.transferRecord(managerID, recordID, serverName);
         LOGGER.info(result);
         System.out.println(result);
@@ -642,8 +651,7 @@ public class ManagerClient {
         if (result.compareTo("") != 0) {
             System.out.println(result);
             LOGGER.info(String.format(result));
-        }
-        else {
+        } else {
             System.out.println(recordID + " not found");
             LOGGER.info(recordID + " not found to print");
         }
@@ -664,8 +672,32 @@ public class ManagerClient {
         fileHandler.setFormatter(formatter);
     }
 
-    public void writeLog(String content) {
+    private void writeLog(String content) {
         LOGGER.info(content);
         System.out.println(content);
+    }
+
+    private String inputStatus() {
+        while (true) {
+            System.out.print(Config.UI.STATUS_MENU);
+            int statusChoice = Integer.parseInt(sc.nextLine());
+            if (statusChoice == 1)
+                return "Active";
+            else if (statusChoice == 2)
+                return "DeActive";
+        }
+    }
+
+    private String inputLocation() {
+        while (true) {
+            System.out.print(Config.UI.LOCATION_MENU);
+            int locChoice = Integer.parseInt(sc.nextLine());
+            if (locChoice == 1)
+                return Config.ARCHITECTURE.SERVER_ID.MTL.name();
+            else if (locChoice == 2)
+                return Config.ARCHITECTURE.SERVER_ID.LVL.name();
+            else if (locChoice == 3)
+                return Config.ARCHITECTURE.SERVER_ID.DDO.name();
+        }
     }
 }

@@ -35,8 +35,8 @@ public class FrontEndDriver {
             namingContextRef.rebind(path, frontEnd);
 
             // Run the server
-            orb.run();
             System.out.println("Front End is running ...");
+            orb.run();
         } catch (Exception e) {
             System.out.println("ERROR: " + e);
             e.printStackTrace(System.out);

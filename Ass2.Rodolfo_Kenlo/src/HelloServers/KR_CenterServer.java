@@ -29,7 +29,7 @@ public class KR_CenterServer extends DCMSPOA {
     private ORB orb;
     String serverName;
     Logger serverLog;
-    static Record obj;
+    Record obj;
     private int idGeneratingMTL = 0;
     private int idGeneratingLVL = 1;
     private int idGeneratingDDO = 2;
@@ -70,8 +70,6 @@ public class KR_CenterServer extends DCMSPOA {
         storageIndex = getFirstLetter(teacherRecord.getLastName());
         // insert the record object in the hashmap according to its first letter
         insertHashmap(storageIndex, teacherRecord);
-        // for testing purpose
-        readHashMap(storageIndex);
 
         // Write in the ServerLog
         String recordID = teacherRecord.getRecordID();
@@ -79,7 +77,7 @@ public class KR_CenterServer extends DCMSPOA {
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         String msg = timestamp + " | " + managerID + operation + recordID + " on the " + serverName + " Server ";
         String id = recordID;
-        serverLog.info(msg);
+//        serverLog.info(msg);
         clientLog(managerID, msg);
         return id;
     }
@@ -91,7 +89,7 @@ public class KR_CenterServer extends DCMSPOA {
         courses = fixArrayS(coursesRegistered.split("/"));
 
         // Instantiate a teacher record object
-        StudentRecord studentRecord = new StudentRecord(firstName, lastName, courses, status, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(new Date()));
+        StudentRecord studentRecord = new StudentRecord(firstName, lastName, courses, status, new SimpleDateFormat("dd/MM/yyyy").format(new Date()));
         switch (serverName) {
             case "KR_MTL":
                 studentRecord.setRecordID(genStudentID(idGeneratingMTL));
@@ -119,7 +117,7 @@ public class KR_CenterServer extends DCMSPOA {
 //        String msg = timestamp + " | " + managerID + operation + recordID + " on the " + serverName + " Server ";
         String msg = studentRecord.getRecordID() + " " + studentRecord.getFirstName() + " " + studentRecord.getLastName() + " " + studentRecord.getCourseRegistered() + " " + studentRecord.getStatus() + " " + studentRecord.getStatusDate();
         String id = recordID;
-        serverLog.info(msg);
+//        serverLog.info(msg);
         clientLog(managerID, msg);
         return id;
     }
@@ -143,7 +141,7 @@ public class KR_CenterServer extends DCMSPOA {
                 // Write in the ServerLog
                 Timestamp timestampMTL = new Timestamp(System.currentTimeMillis());
                 msg = timestampMTL + " | " + managerID + " requested a Record Count from the " + serverName + " Server: " + countResult;
-                serverLog.info(msg);
+//                serverLog.info(msg);
                 clientLog(managerID, msg);
                 //Server Console
 //                System.out.println(countResult);
@@ -157,7 +155,7 @@ public class KR_CenterServer extends DCMSPOA {
                 // Write in the ServerLog
                 Timestamp timestampLVL = new Timestamp(System.currentTimeMillis());
                 msg = timestampLVL + " | " + managerID + " requested a Record Count from the " + serverName + " Server: " + countResult;
-                serverLog.info(msg);
+//                serverLog.info(msg);
                 clientLog(managerID, msg);
                 //Server Console
 //                System.out.println(countResult);
@@ -171,7 +169,7 @@ public class KR_CenterServer extends DCMSPOA {
                 // Write in the ServerLog
                 Timestamp timestampDDO = new Timestamp(System.currentTimeMillis());
                 msg = timestampDDO + " | " + managerID + " requested a Record Count from the " + serverName + " Server: " + countResult;
-                serverLog.info(msg);
+//                serverLog.info(msg);
                 clientLog(managerID, msg);
                 //Server Console
 //                System.out.println(countResult);
@@ -183,7 +181,6 @@ public class KR_CenterServer extends DCMSPOA {
     public synchronized boolean editRecord(String managerID, String recordID, String fieldName, String newValue) {
         String logMsg = "";
         boolean confirmationMsg = false;
-        fieldName = fieldName.toUpperCase();
         for (String key : hmap.keySet()) {
             ArrayList<Record> tempAL = hmap.get(key);
             // iterating for each record in the array list
@@ -192,8 +189,10 @@ public class KR_CenterServer extends DCMSPOA {
                 if (tempRec instanceof StudentRecord) {
                     String sID = ((StudentRecord) tempRec).getRecordID();
                     if (sID.equals(recordID)) {
+//                        System.out.println("fieldName = " + fieldName);
                         switch (fieldName) {
-                            case "COURSE REGISTERED":
+                            case "coursesRegistered":
+//                                System.out.println("edit course");
                                 ArrayList<String> courses = new ArrayList<String>();
                                 courses = ((StudentRecord) tempRec).getCourseRegistered();
                                 String strCourseList = "";
@@ -211,11 +210,12 @@ public class KR_CenterServer extends DCMSPOA {
                                 // Write in the ServerLog
                                 Timestamp timestampCourse = new Timestamp(System.currentTimeMillis());
                                 logMsg = timestampCourse + " | " + managerID + " edited the Registered Courses of " + recordID + " from the " + serverName + " Server";
-                                serverLog.info(logMsg);
+//                                serverLog.info(logMsg);
                                 clientLog(managerID, logMsg);
                                 confirmationMsg = true;
                                 break;
-                            case "STATUS":
+                            case "status":
+//                                System.out.println("edit status");
                                 String strPreviousStat = ((StudentRecord) tempRec).getStatus();
 //                                System.out.println("The previous status was: " + strPreviousStat);
                                 ((StudentRecord) tempRec).setStatus(newValue);
@@ -229,11 +229,12 @@ public class KR_CenterServer extends DCMSPOA {
                                 // Write in the ServerLog
                                 Timestamp timestampStatus = new Timestamp(System.currentTimeMillis());
                                 logMsg = timestampStatus + " | " + managerID + " edited the Status of " + recordID + " from the " + serverName + " Server";
-                                serverLog.info(logMsg);
+//                                serverLog.info(logMsg);
                                 clientLog(managerID, logMsg);
                                 confirmationMsg = true;
                                 break;
-                            case "STATUS DATE":
+                            case "statusDate":
+//                                System.out.println("edit statusDate");
                                 String strPreviousDate = ((StudentRecord) tempRec).getStatusDate();
 //                                System.out.println("The previous status date was: " + strPreviousDate);
                                 ((StudentRecord) tempRec).setStatusDate(newValue);
@@ -242,11 +243,12 @@ public class KR_CenterServer extends DCMSPOA {
                                 // Write in the ServerLog
                                 Timestamp timestampStatusDate = new Timestamp(System.currentTimeMillis());
                                 logMsg = timestampStatusDate + " | " + managerID + " edited the Status Date of " + recordID + " from the " + serverName + " Server";
-                                serverLog.info(logMsg);
+//                                serverLog.info(logMsg);
                                 clientLog(managerID, logMsg);
                                 confirmationMsg = true;
                                 break;
                             default:
+//                                System.out.println("edit default");
                                 confirmationMsg = false;
                                 break;
                         }
@@ -256,7 +258,7 @@ public class KR_CenterServer extends DCMSPOA {
                     String tID = ((TeacherRecord) tempRec).getRecordID();
                     if (tID.equals(recordID)) {
                         switch (fieldName) {
-                            case "ADDRESS":
+                            case "address":
                                 String oldAddress = ((TeacherRecord) tempRec).getAdress();
 //                                System.out.println("The previous address was: " + oldAddress);
                                 ((TeacherRecord) tempRec).setAdress(newValue);
@@ -265,11 +267,11 @@ public class KR_CenterServer extends DCMSPOA {
                                 // Write in the ServerLog
                                 Timestamp timestampAddress = new Timestamp(System.currentTimeMillis());
                                 logMsg = timestampAddress + " | " + managerID + " edited the Address of " + recordID + " from the " + serverName + " Server";
-                                serverLog.info(logMsg);
+//                                serverLog.info(logMsg);
                                 clientLog(managerID, logMsg);
                                 confirmationMsg = true;
                                 break;
-                            case "PHONE":
+                            case "phone":
                                 String oldPhone = ((TeacherRecord) tempRec).getPhone();
 //                                System.out.println("The previous phone number was: " + oldPhone);
                                 ((TeacherRecord) tempRec).setPhone(newValue);
@@ -278,11 +280,11 @@ public class KR_CenterServer extends DCMSPOA {
                                 // Write in the ServerLog
                                 Timestamp timestampPhone = new Timestamp(System.currentTimeMillis());
                                 logMsg = timestampPhone + " | " + managerID + " edited the Phone Number of " + recordID + " from the " + serverName + " Server";
-                                serverLog.info(logMsg);
+//                                serverLog.info(logMsg);
                                 clientLog(managerID, logMsg);
                                 confirmationMsg = true;
                                 break;
-                            case "LOCATION":
+                            case "location":
                                 String oldLocation = ((TeacherRecord) tempRec).getLocation();
 //                                System.out.println("The previous location was: " + oldLocation);
                                 ((TeacherRecord) tempRec).setLocation(newValue);
@@ -291,7 +293,7 @@ public class KR_CenterServer extends DCMSPOA {
                                 // Write in the ServerLog
                                 Timestamp timestampLocation = new Timestamp(System.currentTimeMillis());
                                 logMsg = timestampLocation + " | " + managerID + " edited the Phone Number of " + recordID + " from the " + serverName + " Server";
-                                serverLog.info(logMsg);
+//                                serverLog.info(logMsg);
                                 clientLog(managerID, logMsg);
                                 confirmationMsg = true;
                                 break;
@@ -311,134 +313,139 @@ public class KR_CenterServer extends DCMSPOA {
     }
 
     public synchronized boolean transferRecord(String managerID, String recordID, String remoteCenterServerName) {
-        String logMsg;
-        String storageIndex = "";
         boolean confirmationMsg = false; // DEFAULT
-        String clientMsg;
-        String operation = "transfer" + managerID;
-        Timestamp timestamp;
-        for (String key : hmap.keySet()) {
-            ArrayList<Record> tempAL = hmap.get(key); //GET THE ARRAYLAST AT LETTER
-            // iterating for each record in the array list
-            for (int i = 0; i < tempAL.size(); i++) {
-                Record tempRec = tempAL.get(i);
-                if (tempRec instanceof StudentRecord) {
-                    String sID = ((StudentRecord) tempRec).getRecordID();
-                    if (sID.equals(recordID)) {
-                        obj = ((StudentRecord) tempRec);
-                        // get student last name first letter
-                        storageIndex = getFirstLetter(obj.getLastName());
-                        switch (remoteCenterServerName) {
-                            case "MTL":
-                                clientMsg = clientUDP(6789, operation);// mtl
-                                if (!clientMsg.equals("notFilled")) {
-                                    confirmationMsg = true;
-                                }
-                                tempAL.remove(tempRec);
-                                // Write in the ServerLog
-                                timestamp = new Timestamp(System.currentTimeMillis());
-                                logMsg = timestamp + " | " + managerID + " transferred the Record " + recordID + " from the " + serverName + " Server"
-                                        + " to the " + remoteCenterServerName + " Server";
-                                serverLog.info(logMsg);
-                                clientLog(managerID, logMsg);
-                                //Changed because of the project architeture.
-                                //confirmationMsg = logMsg;
-                                break;
-                            case "LVL":
-                                clientMsg = clientUDP(6788, operation);// lvl
-                                if (!clientMsg.equals("notFilled")) {
-                                    confirmationMsg = true;
-                                }
-                                tempAL.remove(tempRec);
-                                // Write in the ServerLog
-                                timestamp = new Timestamp(System.currentTimeMillis());
-                                logMsg = timestamp + " | " + managerID + " transferred the Record " + recordID + " from the " + serverName + " Server"
-                                        + " to the " + remoteCenterServerName + " Server";
-                                serverLog.info(logMsg);
-                                clientLog(managerID, logMsg);
-                                //Changed because of the project architeture.
-                                //confirmationMsg = logMsg;
-                                break;
-                            case "DDO":
-                                clientMsg = clientUDP(6787, operation);// ddo
-                                if (!clientMsg.equals("notFilled")) {
-                                    confirmationMsg = true;
-                                }
-                                tempAL.remove(tempRec);
-                                // Write in the ServerLog
-                                timestamp = new Timestamp(System.currentTimeMillis());
-                                logMsg = timestamp + " | " + managerID + " transferred the Record " + recordID + " from the " + serverName + " Server"
-                                        + " to the " + remoteCenterServerName + " Server";
-                                serverLog.info(logMsg);
-                                clientLog(managerID, logMsg);
-                                //Changed because of the project architeture.
-                                //confirmationMsg = logMsg;
-                                break;
-                        }
+        System.out.println(this.serverName + " " + "KR_" + remoteCenterServerName);
+        if (this.serverName.compareTo("KR_" + remoteCenterServerName) != 0) {
+            String logMsg;
+            String storageIndex = "";
+            String clientMsg;
+            String operation = "transfer" + recordID;
+            Timestamp timestamp;
+            for (String key : hmap.keySet()) {
+                ArrayList<Record> tempAL = hmap.get(key); //GET THE ARRAYLAST AT LETTER
+                // iterating for each record in the array list
+                for (int i = 0; i < tempAL.size(); i++) {
+                    Record tempRec = tempAL.get(i);
+                    if (tempRec instanceof StudentRecord) {
+                        String sID = ((StudentRecord) tempRec).getRecordID();
+                        if (sID.equals(recordID)) {
+                            obj = ((StudentRecord) tempRec);
+                            // get student last name first letter
+                            storageIndex = getFirstLetter(obj.getLastName());
+                            switch (remoteCenterServerName) {
+                                case "MTL":
+                                    clientMsg = clientUDP(6789, operation);// mtl
+                                    if (!clientMsg.equals("notFilled")) {
+                                        confirmationMsg = true;
+                                    }
+                                    tempAL.remove(tempRec);
+                                    // Write in the ServerLog
+                                    timestamp = new Timestamp(System.currentTimeMillis());
+                                    logMsg = timestamp + " | " + managerID + " transferred the Record " + recordID + " from the " + serverName + " Server"
+                                            + " to the " + remoteCenterServerName + " Server";
+//                                serverLog.info(logMsg);
+                                    clientLog(managerID, logMsg);
+                                    //Changed because of the project architeture.
+                                    //confirmationMsg = logMsg;
+                                    break;
+                                case "LVL":
+                                    clientMsg = clientUDP(6788, operation);// lvl
+                                    if (!clientMsg.equals("notFilled")) {
+                                        confirmationMsg = true;
+                                    }
+                                    tempAL.remove(tempRec);
+                                    // Write in the ServerLog
+                                    timestamp = new Timestamp(System.currentTimeMillis());
+                                    logMsg = timestamp + " | " + managerID + " transferred the Record " + recordID + " from the " + serverName + " Server"
+                                            + " to the " + remoteCenterServerName + " Server";
+//                                serverLog.info(logMsg);
+                                    clientLog(managerID, logMsg);
+                                    //Changed because of the project architeture.
+                                    //confirmationMsg = logMsg;
+                                    break;
+                                case "DDO":
+                                    clientMsg = clientUDP(6787, operation);// ddo
+                                    if (!clientMsg.equals("notFilled")) {
+                                        confirmationMsg = true;
+                                    }
+                                    tempAL.remove(tempRec);
+                                    // Write in the ServerLog
+                                    timestamp = new Timestamp(System.currentTimeMillis());
+                                    logMsg = timestamp + " | " + managerID + " transferred the Record " + recordID + " from the " + serverName + " Server"
+                                            + " to the " + remoteCenterServerName + " Server";
+//                                serverLog.info(logMsg);
+                                    clientLog(managerID, logMsg);
+                                    //Changed because of the project architeture.
+                                    //confirmationMsg = logMsg;
+                                    break;
+                            }
 
-                    }
-                } else if (tempRec instanceof TeacherRecord) {
-                    String tID = ((TeacherRecord) tempRec).getRecordID();
-                    if (tID.equals(recordID)) {
-                        obj = ((TeacherRecord) tempRec);
-                        // get teacher last name first letter
-                        storageIndex = getFirstLetter(obj.getLastName());
-                        switch (remoteCenterServerName) {
-                            case "MTL":
-                                clientMsg = clientUDP(6789, operation);// mtl
-                                if (!clientMsg.equals("notFilled")) {
-                                    confirmationMsg = true;
-                                }
-                                tempAL.remove(tempRec);
-                                // Write in the ServerLog
-                                timestamp = new Timestamp(System.currentTimeMillis());
-                                logMsg = timestamp + " | " + managerID + " transferred the Record " + recordID + " from the " + serverName + " Server"
-                                        + " to the " + remoteCenterServerName + " Server";
-                                serverLog.info(logMsg);
-                                clientLog(managerID, logMsg);
-                                //Changed because of the project architeture.
-                                //confirmationMsg = logMsg;
-                                break;
-                            case "LVL":
-                                clientMsg = clientUDP(6788, operation);// lvl
-                                if (!clientMsg.equals("notFilled")) {
-                                    confirmationMsg = true;
-                                }
-                                tempAL.remove(tempRec);
-                                // Write in the ServerLog
-                                timestamp = new Timestamp(System.currentTimeMillis());
-                                logMsg = timestamp + " | " + managerID + " transferred the Record " + recordID + " from the " + serverName + " Server"
-                                        + " to the " + remoteCenterServerName + " Server";
-                                serverLog.info(logMsg);
-                                clientLog(managerID, logMsg);
-                                //Changed because of the project architeture.
-                                //confirmationMsg = logMsg;
-                                break;
-                            case "DDO":
-                                clientMsg = clientUDP(6787, operation);// ddo
-                                if (!clientMsg.equals("notFilled")) {
-                                    confirmationMsg = true;
-                                }
-                                tempAL.remove(tempRec);
-                                // Write in the ServerLog
-                                timestamp = new Timestamp(System.currentTimeMillis());
-                                logMsg = timestamp + " | " + managerID + " transferred the Record " + recordID + " from the " + serverName + " Server"
-                                        + " to the " + remoteCenterServerName + " Server";
-                                serverLog.info(logMsg);
-                                clientLog(managerID, logMsg);
-                                //Changed because of the project architeture.
-                                //confirmationMsg = logMsg;
-                                break;
                         }
+                    } else if (tempRec instanceof TeacherRecord) {
+                        String tID = ((TeacherRecord) tempRec).getRecordID();
+                        if (tID.equals(recordID)) {
+                            obj = ((TeacherRecord) tempRec);
+                            // get teacher last name first letter
+                            storageIndex = getFirstLetter(obj.getLastName());
+                            switch (remoteCenterServerName) {
+                                case "MTL":
+                                    clientMsg = clientUDP(6789, operation);// mtl
+                                    if (!clientMsg.equals("notFilled")) {
+                                        confirmationMsg = true;
+                                    }
+                                    tempAL.remove(tempRec);
+                                    // Write in the ServerLog
+                                    timestamp = new Timestamp(System.currentTimeMillis());
+                                    logMsg = timestamp + " | " + managerID + " transferred the Record " + recordID + " from the " + serverName + " Server"
+                                            + " to the " + remoteCenterServerName + " Server";
+//                                serverLog.info(logMsg);
+                                    clientLog(managerID, logMsg);
+                                    //Changed because of the project architeture.
+                                    //confirmationMsg = logMsg;
+                                    break;
+                                case "LVL":
+                                    clientMsg = clientUDP(6788, operation);// lvl
+                                    if (!clientMsg.equals("notFilled")) {
+                                        confirmationMsg = true;
+                                    }
+                                    tempAL.remove(tempRec);
+                                    // Write in the ServerLog
+                                    timestamp = new Timestamp(System.currentTimeMillis());
+                                    logMsg = timestamp + " | " + managerID + " transferred the Record " + recordID + " from the " + serverName + " Server"
+                                            + " to the " + remoteCenterServerName + " Server";
+//                                serverLog.info(logMsg);
+                                    clientLog(managerID, logMsg);
+                                    //Changed because of the project architeture.
+                                    //confirmationMsg = logMsg;
+                                    break;
+                                case "DDO":
+                                    clientMsg = clientUDP(6787, operation);// ddo
+//                                    System.out.println("clientMsg = " + clientMsg);
+                                    if (!clientMsg.equals("notFilled")) {
+                                        confirmationMsg = true;
+                                    }
+                                    tempAL.remove(tempRec);
+                                    // Write in the ServerLog
+                                    timestamp = new Timestamp(System.currentTimeMillis());
+                                    logMsg = timestamp + " | " + managerID + " transferred the Record " + recordID + " from the " + serverName + " Server"
+                                            + " to the " + remoteCenterServerName + " Server";
+//                                serverLog.info(logMsg);
+                                    clientLog(managerID, logMsg);
+                                    //Changed because of the project architeture.
+                                    //confirmationMsg = logMsg;
+                                    break;
+                            }
 
+                        }
                     }
                 }
             }
-        }
-        if (storageIndex != "") {
-            readHashMap(storageIndex);
+            if (storageIndex != "") {
+                readHashMap(storageIndex);
 
+            }
         }
+//        System.out.println("confirmationMsg = " + confirmationMsg);
         return confirmationMsg;
     }
 
@@ -473,43 +480,45 @@ public class KR_CenterServer extends DCMSPOA {
                 for (int i = 0; i < recordsList.size(); i++) {
                     if (recordsList.get(i).getRecordType() == Record.RECORD_TYPE.TEACHER) {
                         TeacherRecord teacherRecord = (TeacherRecord) recordsList.get(i);
-                        result += i + " " + String.format(teacherRecord.getRecordID(), teacherRecord.getFirstName(), teacherRecord.getLastName(), teacherRecord.getAdress(), teacherRecord.getPhone(), teacherRecord.getSpecalization(), teacherRecord.getLocation());
+                        result += i + " " + teacherRecord.getRecordID() + " " + teacherRecord.getFirstName() + " " + teacherRecord.getLastName() + " " + teacherRecord.getAdress() + " " + teacherRecord.getPhone() + " " + teacherRecord.getSpecalization() + " " + teacherRecord.getLocation();
                         result += System.lineSeparator();
                     } else {
                         StudentRecord studentRecord = (StudentRecord) recordsList.get(i);
-                        result += i + " " + String.format(studentRecord.getRecordID(), studentRecord.getFirstName(), studentRecord.getLastName(), studentRecord.getCourseRegistered(), studentRecord.getStatus(), studentRecord.getStatusDate());
+                        result += i + " " + studentRecord.getRecordID() + " " + studentRecord.getFirstName() + " " + studentRecord.getLastName() + " " + studentRecord.getCourseRegistered() + " " + studentRecord.getStatus() + " " + studentRecord.getStatusDate();
                         result += System.lineSeparator();
                     }
                 }
             }
         }
+        if (result.compareTo("") == 0)
+            return "There is no record to print";
         return result;
     }
 
     public String printRecord(String managerID, String recordID) {
+//        System.out.println("print " + managerID + " " + recordID);
         synchronized (hmap) {
             for (ArrayList<Record> recordsList : hmap.values()) {
                 Iterator<Record> iterator = recordsList.iterator();
                 while (iterator.hasNext()) {
                     Record recordFound = iterator.next();
+//                    System.out.println("found " + recordFound.getFirstName() + " " + recordFound.getLastName());
                     if (recordFound.getRecordType() == Record.RECORD_TYPE.TEACHER) {
                         TeacherRecord teacherRecord = (TeacherRecord) recordFound;
                         if (teacherRecord.getRecordID().compareTo(recordID) == 0) {
-                            return String.format(recordID, teacherRecord.getFirstName(), teacherRecord.getLastName(), teacherRecord.getAdress(), teacherRecord.getPhone(), teacherRecord.getSpecalization(), teacherRecord.getLocation());
+                            return (recordID + " " + teacherRecord.getFirstName() + " " + teacherRecord.getLastName() + " " + teacherRecord.getAdress() + " " + teacherRecord.getPhone() + " " + teacherRecord.getSpecalization() + " " + teacherRecord.getLocation());
                         }
                     }
                     if (recordFound.getRecordType() == Record.RECORD_TYPE.STUDENT) {
                         StudentRecord studentRecord = (StudentRecord) recordFound;
                         if (studentRecord.getRecordID().compareTo(recordID) == 0) {
-                            return String.format(recordID, studentRecord.getFirstName(), studentRecord.getLastName(), studentRecord.getCourseRegistered(), studentRecord.getStatus(), studentRecord.getStatusDate());
+                            return (recordID + " " + studentRecord.getFirstName() + " " + studentRecord.getLastName() + " " + studentRecord.getCourseRegistered() + " " + studentRecord.getStatus() + " " + studentRecord.getStatusDate());
                         }
                     }
                 }
-
-
             }
         }
-        return "";
+        return "There is no record to print";
     }
 
 
@@ -671,6 +680,7 @@ public class KR_CenterServer extends DCMSPOA {
                 DatagramPacket request = new DatagramPacket(m, m.length, aHost, serverport);
                 aSocket.send(request);
             } else if (operation.substring(0, 8).equals("transfer")) {
+//                System.out.println(operation);
                 m = concatenate(obj, operation.substring(8, 15)).getBytes();
                 InetAddress aHost = InetAddress.getByName("localhost");
                 int serverport = port;
@@ -683,6 +693,7 @@ public class KR_CenterServer extends DCMSPOA {
             aSocket.receive(reply);
 //            System.out.println("clientUDP received: " + new String(reply.getData()));
             returnMsg = new String(reply.getData()).trim();
+//            System.out.println("Transfer response = " + returnMsg);
         } catch (SocketException e) {
             e.printStackTrace(System.err);
         } catch (IOException e) {
@@ -728,6 +739,7 @@ public class KR_CenterServer extends DCMSPOA {
                 } else {
                     String requestContent = new String(request.getData());
                     requestContent = requestContent.trim();
+//                    System.out.println("requestContent = " + requestContent);
 //                    System.out.println(requestContent);
                     String[] contentComponents = requestContent.split("\\|", -1);
                     if (contentComponents[contentComponents.length - 1].equals("LVL")
@@ -735,18 +747,22 @@ public class KR_CenterServer extends DCMSPOA {
                             || contentComponents[contentComponents.length - 1].equals("MTL")) {
                         if (contentComponents[5].contains(",")) {
                             spec = contentComponents[5].split("\\,", -1);
-                        } else
+                        } else {
                             spec = contentComponents[5].split("");
+                        }
+
                         spec = fixArray(spec);
-                        insertTransferedSRecord(contentComponents[0], contentComponents[1], contentComponents[2], spec,
-                                contentComponents[4], contentComponents[5], contentComponents[6]);
+                        insertTransferedTRecord(contentComponents[0], contentComponents[1], contentComponents[2],
+                                contentComponents[3], contentComponents[4], spec, contentComponents[6], contentComponents[7]);
                         strHMC = "Object Transfered";
                         hmc = strHMC.getBytes();
                     } else {
                         spec = contentComponents[3].split("\\,", -1);
                         spec = fixArray(spec);
-                        insertTransferedTRecord(contentComponents[0], contentComponents[1], contentComponents[2],
-                                contentComponents[3], contentComponents[4], spec, contentComponents[6], contentComponents[7]);
+//                        System.out.println("contentComponents = " + contentComponents[0] + contentComponents[1] + contentComponents[2] +
+//                                contentComponents[3] + contentComponents[4] + contentComponents[6] + contentComponents[7]);
+                        insertTransferedSRecord(contentComponents[0], contentComponents[1], contentComponents[2], spec,
+                                contentComponents[4], contentComponents[5], contentComponents[6]);
                         strHMC = "Object Transfered";
                         hmc = strHMC.getBytes();
                     }
@@ -846,7 +862,7 @@ public class KR_CenterServer extends DCMSPOA {
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         String msg = timestamp + " | " + managerID + operation + recordID + " on the " + serverName + " Server ";
         //String id = recordID;
-        serverLog.info(msg);
+//        serverLog.info(msg);
         clientLog(managerID, msg);
 //        System.out.println("Teacher Record " + recordID + " was properly created & logged.");
 
@@ -875,7 +891,7 @@ public class KR_CenterServer extends DCMSPOA {
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
         String msg = timestamp + " | " + managerID + operation + recordID + " on the " + serverName + " Server ";
         //String id = recordID;
-        serverLog.info(msg);
+//        serverLog.info(msg);
         clientLog(managerID, msg);
         //Server Console
 //        System.out.println("Student Record " + recordID + " was properly created & logged.");
