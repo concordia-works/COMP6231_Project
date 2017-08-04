@@ -347,12 +347,11 @@ public class KM_CenterServer extends DCMSPOA {
                             new Thread(new Runnable() {
                                 @Override
                                 public void run() {
-                                    transferSRecord("server", record_id, f_name, l_name, courses, status);
+                                    transferSRecord(record_id, f_name, l_name, courses, status);
                                 }
                             }).start();
                             //createSRecord() is called
                         } else {
-
 //                            System.out.println("inside else");//if record id teacher record
                             String addr = fields[3];
                             String phone = fields[4];
@@ -361,7 +360,7 @@ public class KM_CenterServer extends DCMSPOA {
                             new Thread(new Runnable() {
                                 @Override
                                 public void run() {
-                                    transferTRecord("server", record_id, f_name, l_name, addr, phone, spec, loc);
+                                    transferTRecord(record_id, f_name, l_name, addr, phone, spec, loc);
                                 }
                             }).start();      //createTRecord() is called
                         }
@@ -430,23 +429,21 @@ public class KM_CenterServer extends DCMSPOA {
         return success_flag;
     }
 
-    private String transferTRecord(String manager_id, String record_id, String f_name, String l_name, String addr, String number, String spec, String loc) {                                                                                    //creates the teacher record
-        String result = "";
+    private String transferTRecord(String record_id, String f_name, String l_name, String addr, String number, String spec, String loc) {        //creates the teacher record
         synchronized (lockID) {
-            teacher_count++;
+            ++teacher_count;
 
             Record r = new Record(record_id, f_name, l_name, addr, number, spec, loc);
 
             char first = l_name.charAt(0);
             insert(r, first);
-            result = record_id;
+            success_flag = true;
         }         //calls insert method to insert the new record	success_flag=true;
 //        logger.info("Teacher record created by " + manager_id);
-        return result;
+        return record_id;
     }
 
-    private String transferSRecord(String manager_id, String record_id, String f_name, String l_name, String courses, String status) {                                                                            //creates student record
-        String result = "";
+    private String transferSRecord(String record_id, String f_name, String l_name, String courses, String status) {  //creates student record
         synchronized (lockID) {
             ++student_count;
 
@@ -457,11 +454,10 @@ public class KM_CenterServer extends DCMSPOA {
             char first = l_name.charAt(0);
 
             insert(r, first);
-            result = record_id;
+            success_flag = true;
         }
-        success_flag = true;
 //        logger.info("Student record created by " + manager_id);
-        return result;
+        return record_id;
     }
 
 }

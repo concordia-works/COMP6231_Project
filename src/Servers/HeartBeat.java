@@ -1,178 +1,177 @@
 package Servers;
 
-//i am making hashmap status to store each servers status-true/false
-
 import Utils.Config;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.time.Duration;
-import java.time.Instant;
+import java.net.SocketException;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
+
+import static java.lang.Thread.sleep;
 
 /**
  * Created by kamal on 7/28/2017.
  */
 
-public class HeartBeat extends Thread {
-    private Config.ARCHITECTURE.REPLICAS server_id;
-    private int heartbeat_port;
-    private int frequency = 5;
+public class HeartBeat implements Runnable {
+    private Config.ARCHITECTURE.REPLICAS replicaManagerID;
+    private int heartbeatPort;
+    private Map<Config.ARCHITECTURE.REPLICAS, Boolean> replicaManagerStatus;
+    private final Object replicaManagerStatusLock = new Object();
+    private Map<Config.ARCHITECTURE.REPLICAS, Long> mostRecentAliveTime;
+    private final Object mostRecentAliveTimeLock = new Object();
+    private Election election;
+    private boolean[] replicasStatus;
+    private Config.ARCHITECTURE.REPLICAS leaderID;
 
-    private static HashMap<String,Boolean> status=new HashMap<String,Boolean>();
-    static
-    {
-        status.put("MINH",false);
-        status.put("KEN_RO",false);
-        status.put("KAMAL",false);
-    }
-    public HeartBeat(Config.ARCHITECTURE.REPLICAS id, int port_no)
-    {
-        this.server_id = id;
-        System.out.println(server_id);
-        this.heartbeat_port = id.getCoefficient() *port_no;
-        synchronized(status) {
-            status.replace(server_id.toString(), true);//status becomes true when Heartbeat starts
-        }
-    }
-    public int getHeartBeat_Port(Config.ARCHITECTURE.REPLICAS s_id) {
-        return s_id.getCoefficient() *Config.UDP.PORT_HEART_BEAT;
-    }
+    // A HeartBeat object is created when a RM starts
+    public HeartBeat(Config.ARCHITECTURE.REPLICAS replicaManagerID, int heartbeatPort) throws SocketException {
+        this.replicaManagerID = replicaManagerID;
+        this.heartbeatPort = heartbeatPort;
+        this.election = new Election(this.replicaManagerID);
 
-    public Config.ARCHITECTURE.REPLICAS getServer_id() {
-        return server_id;
-    }
+        replicasStatus = new boolean[Config.ARCHITECTURE.REPLICAS.values().length];
+        for (Config.ARCHITECTURE.REPLICAS replicaID : Config.ARCHITECTURE.REPLICAS.values())
+            replicasStatus[replicaID.getCoefficient() - 1] = true;
 
-    public boolean get_status(String server_id)         //return status
-    {
-        boolean result=false;
-        Iterator<Map.Entry<String, Boolean>> itr = status.entrySet().iterator();
-        while (itr.hasNext()) {
-            Map.Entry<String, Boolean> entry = itr.next();
-            if(entry.getKey().equals(server_id))
-                result=entry.getValue();
-        }
-        return result;
-    }
-    public void listner() {
-        try {
-            Config.ARCHITECTURE.REPLICAS threadServerID=this.server_id;
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    DatagramSocket socket = null;
-                    try {
-                        socket = new DatagramSocket(getHeartBeat_Port(server_id));
-                        byte[] buffer = new byte[1000];
-                        HashMap<String, Instant> msg_recieved = new HashMap();
-                        synchronized (msg_recieved) {
-                            for (Config.ARCHITECTURE.REPLICAS replicaID : Config.ARCHITECTURE.REPLICAS.values()) {
-                                if (replicaID != threadServerID) {
-                                    msg_recieved.put(replicaID.toString(), Instant.now());
-                                }
-                            }
-                            while (true) {
-                                DatagramPacket request = new DatagramPacket(buffer, buffer.length);
-                                socket.receive(request);
-
-                                String data_recieved =new String(new String(request.getData(), request.getOffset(),request.getLength()));
-
-                                System.out.println("data recieved"+data_recieved);
-
-                                msg_recieved.replace(data_recieved.substring(10,data_recieved.length()) , Instant.now());
-
-
-                                Iterator<Map.Entry<String, Instant>> itr = msg_recieved.entrySet().iterator();
-                                while (itr.hasNext()) {
-                                    Map.Entry<String, Instant> entry = itr.next();
-                                    String key = entry.getKey();
-                                    System.out.println(key +entry.getValue());
-                                    Instant time = entry.getValue();
-                                    Instant current_time = Instant.now();
-                                    int duration = (int) Duration.between(time, current_time).getSeconds();
-                                    System.out.println(duration);
-
-                                    if (duration > frequency+1) {
-                                        System.out.println("Key : " + entry.getKey() + " Removed");
-                                        System.out.println("server failed" + key);
-                                        String failed_server=key;
-                                        //set_status(failed_server);
-                                        itr.remove();
-                                        //call election system
-                                    }
-                                }
-                            }
-
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    try {
-                        Thread.sleep((frequency - 1) * 1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }).start();
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
-        //finally {
-        //if (socket != null) {
-        //     socket.close();
-        // }
+        // Assume all RMs are alive when HeartBeat object is initiated
+        this.replicaManagerStatus = Collections.synchronizedMap(new HashMap<Config.ARCHITECTURE.REPLICAS, Boolean>());
+        this.replicaManagerStatus.put(Config.ARCHITECTURE.REPLICAS.KEN_RO, true);
+        this.replicaManagerStatus.put(Config.ARCHITECTURE.REPLICAS.KAMAL, true);
+        this.replicaManagerStatus.put(Config.ARCHITECTURE.REPLICAS.MINH, true);
+        this.mostRecentAliveTime = Collections.synchronizedMap(new HashMap<Config.ARCHITECTURE.REPLICAS, Long>());
+        this.mostRecentAliveTime.put(Config.ARCHITECTURE.REPLICAS.KEN_RO, System.nanoTime() / 1000000);
+        this.mostRecentAliveTime.put(Config.ARCHITECTURE.REPLICAS.KAMAL, System.nanoTime() / 1000000);
+        this.mostRecentAliveTime.put(Config.ARCHITECTURE.REPLICAS.MINH, System.nanoTime() / 1000000);
     }
 
+    @Override
+    public void run() {
+        // Start listening to HeartBeat messages from other RMs
+        new Thread(() -> listenToAliveMessage()).start();
 
-    public void sender() throws Exception {
-        Config.ARCHITECTURE.REPLICAS threadServerID = this.server_id;
+        // Start sending Alive messages to other RMs
+        new Thread(() -> broadcastAliveMessage()).start();
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
+        // Start checking Alive status of RMs
+        new Thread(() -> checkingAlive()).start();
 
-                while (true) {
-                    try {
-                        for (Config.ARCHITECTURE.REPLICAS replicaID : Config.ARCHITECTURE.REPLICAS.values()) {
-                            // if (replicaID != threadServerID&&get_status(replicaID.toString()))//actual code needs to be this
-                            if(replicaID!=threadServerID){
-                                {
-                                    send_message(replicaID);
-                                    System.out.print("msg sent to"+replicaID);
-                                }
-                            }
-                        }
-                    } catch (Exception e) {
-                    }
-                    try {
-                        Thread.sleep(frequency * 1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
+        // Start a new election after the RM is online
+        new Thread(() -> {
+            new Thread(() -> election.listenToElectionMessage()).start();
+
+            try {
+                sleep(Config.ELECTION.ELECTION_DELAY);
+//                System.out.println(replicaManagerID.name() + " starts new election");
+                leaderID = election.startElection(replicasStatus);
+                election.announceNewLeader();
+            } catch (InterruptedException e) {
+                e.printStackTrace(System.err);
             }
         }).start();
     }
 
-
-    public void send_message(Config.ARCHITECTURE.REPLICAS s_id) throws Exception {
-        InetAddress host = InetAddress.getLocalHost();
-        byte[] message = ("I am Alive" + this.server_id).getBytes();
-        DatagramSocket ds = new DatagramSocket();
-        DatagramPacket data_packet = new DatagramPacket(message, message.length, host, getHeartBeat_Port(s_id));//first packet is sent to first serve(port no1)
-
-        ds.send(data_packet);
-
+    public void updateLeaderID(Config.ARCHITECTURE.REPLICAS leaderID) {
+        this.leaderID = leaderID;
     }
 
-    public void run() {
+    private void listenToAliveMessage() {
+        DatagramSocket socket = null;
         try {
-            listner();
-            sender();
+            socket = new DatagramSocket(heartbeatPort);
+
+            while (true) {
+                byte[] buffer = new byte[1000];
+                DatagramPacket datagramPacket = new DatagramPacket(buffer, buffer.length);
+                socket.receive(datagramPacket);
+
+                new Thread(() -> {
+                    long currentTime = System.nanoTime() / 1000000;
+                    String dataReceived = new String(datagramPacket.getData()).trim();
+                    Config.ARCHITECTURE.REPLICAS replicaID = Config.ARCHITECTURE.REPLICAS.valueOf(dataReceived);
+//                    System.out.println(replicaManagerID + ": knows " + replicaID + " is alive at " + currentTime);
+                    synchronized (replicaManagerStatusLock) {
+                        replicaManagerStatus.put(replicaID, true);
+                    }
+                    synchronized (mostRecentAliveTimeLock) {
+                        mostRecentAliveTime.put(replicaID, currentTime);
+                    }
+                }).start();
+            }
         } catch (Exception e) {
+            e.printStackTrace(System.err);
+        } finally {
+            if (socket != null)
+                socket.close();
+        }
+    }
+
+    private void broadcastAliveMessage() {
+        DatagramSocket socket = null;
+        try {
+            socket = new DatagramSocket();
+            byte[] buffer = replicaManagerID.name().getBytes();
+            DatagramPacket datagramPacket = new DatagramPacket(buffer, buffer.length);
+            datagramPacket.setAddress(InetAddress.getLocalHost());
+            while (true) {
+                for (Config.ARCHITECTURE.REPLICAS replicaID : Config.ARCHITECTURE.REPLICAS.values()) {
+                    if (replicaID != replicaManagerID) {
+                        datagramPacket.setPort(replicaID.getCoefficient() * Config.UDP.PORT_HEART_BEAT);
+                        socket.send(datagramPacket);
+//                        System.out.println("Send " + replicaManagerID.name() + " is alive to " + replicaID.name());
+                    }
+                }
+                sleep(Config.HEARTBEAT.HEART_BEAT_DELAY);
+            }
+        } catch (Exception e) {
+            e.printStackTrace(System.err);
+        } finally {
+            if (socket != null)
+                socket.close();
+        }
+    }
+
+    private void checkingAlive() {
+        try {
+            while (true) {
+
+                for (Config.ARCHITECTURE.REPLICAS replicaID : Config.ARCHITECTURE.REPLICAS.values()) {
+                    if (isReplicaAlive(replicaID) && replicaID != replicaManagerID) {
+                        long mostRecentTime;
+                        synchronized (mostRecentAliveTimeLock) {
+                            mostRecentTime = mostRecentAliveTime.get(replicaID);
+                        }
+                        long currentTime = System.nanoTime() / 1000000;
+//                            System.out.println("currentTime - mostRecentTime = " + currentTime + " - " + mostRecentTime + " = " + (currentTime - mostRecentTime));
+
+                        // The replica is failed
+                        if (currentTime - mostRecentTime > Config.HEARTBEAT.HEART_BEAT_TIMEOUT * 2) {
+                            System.out.println(replicaManagerID.name() + ": knows " + replicaID.name() + " is DEAD, current leader is " + leaderID);
+                            synchronized (replicaManagerStatusLock) {
+                                replicaManagerStatus.put(replicaID, false);
+                            }
+                            // Start new election if leader is failed
+                            if (replicaID.equals(leaderID)) {
+                                System.out.println(replicaManagerID + ": starts new election");
+                                election.startElection(replicasStatus);
+                                election.announceNewLeader();
+                            }
+                        }
+                    }
+                }
+                sleep(Config.HEARTBEAT.HEART_BEAT_TIMEOUT);
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace(System.err);
+        }
+    }
+
+    private boolean isReplicaAlive(Config.ARCHITECTURE.REPLICAS replicaID) {
+        synchronized (replicaManagerStatusLock) {
+            return replicaManagerStatus.get(replicaID);
         }
     }
 }

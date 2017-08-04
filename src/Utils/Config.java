@@ -8,9 +8,9 @@ public class Config {
 
     public static class ARCHITECTURE {
         public enum REPLICAS {
-//            MINH(1), KAMAL(2), KEN_RO(3);
+            MINH(1), KAMAL(2), KEN_RO(3);
 //            KEN_RO(1), MINH(2), KAMAL(3);
-            KAMAL(1), KEN_RO(2), MINH(3);
+//            KAMAL(1), KEN_RO(2), MINH(3);
 
             private final int coefficient;
             REPLICAS(int coefficient) { this.coefficient = coefficient; }
@@ -61,9 +61,14 @@ public class Config {
         public static final String MESSAGE = "Election message";
         public static final String RESPONSE = "Election response";
         public static final String ANNOUNCEMENT = "%s,%s";
-        public static final int ANSWER_TIMEOUT = 10;
-        public static final int ELECTION_TIMEOUT = 20;
-        public static final int ELECTION_DELAY = 100;
+        public static final int ANSWER_TIMEOUT = 50;
+        public static final int ELECTION_TIMEOUT = 100;
+        public static final int ELECTION_DELAY = 0;
+    }
+
+    public static class HEARTBEAT {
+        public static final int HEART_BEAT_DELAY = 100;
+        public static final int HEART_BEAT_TIMEOUT = 1000;
     }
 
     public static class UI {

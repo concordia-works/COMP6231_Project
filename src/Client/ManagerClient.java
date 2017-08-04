@@ -67,7 +67,7 @@ public class ManagerClient {
                 }
             } while (input != 0);
         } catch (Exception e) {
-            e.printStackTrace(System.out);
+            e.printStackTrace(System.err);
         }
     }
 
@@ -167,19 +167,19 @@ public class ManagerClient {
                 String recordID = frontEnd.createSRecord(managerID, "Quoc Minh", "Vu", "distributed system", "Active");
                 client.writeLog(recordID + " is created");
             } catch (IOException e) {
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             } catch (CannotProceed cannotProceed) {
-                cannotProceed.printStackTrace();
+                cannotProceed.printStackTrace(System.err);
             } catch (InvalidName invalidName) {
-                invalidName.printStackTrace();
+                invalidName.printStackTrace(System.err);
             } catch (NotFound notFound) {
-                notFound.printStackTrace();
+                notFound.printStackTrace(System.err);
             }
         }).start();
         // 2
         new Thread(() -> {
             try {
-                String managerID = "MTL2112";
+                String managerID = "MTL2111";
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
 
@@ -190,19 +190,19 @@ public class ManagerClient {
                 String recordID = frontEnd.createSRecord(managerID, "Duc Son", "Vo", "advanced programming", "Active");
                 client.writeLog(recordID + " is created");
             } catch (IOException e) {
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             } catch (CannotProceed cannotProceed) {
-                cannotProceed.printStackTrace();
+                cannotProceed.printStackTrace(System.err);
             } catch (InvalidName invalidName) {
-                invalidName.printStackTrace();
+                invalidName.printStackTrace(System.err);
             } catch (NotFound notFound) {
-                notFound.printStackTrace();
+                notFound.printStackTrace(System.err);
             }
         }).start();
         // 3
         new Thread(() -> {
             try {
-                String managerID = "MTL2113";
+                String managerID = "MTL2111";
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
 
@@ -213,19 +213,19 @@ public class ManagerClient {
                 String recordID = frontEnd.createSRecord(managerID, "Duy Tung", "Viet", "human-computer interaction", "Active");
                 client.writeLog(recordID + " is created");
             } catch (IOException e) {
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             } catch (CannotProceed cannotProceed) {
-                cannotProceed.printStackTrace();
+                cannotProceed.printStackTrace(System.err);
             } catch (InvalidName invalidName) {
-                invalidName.printStackTrace();
+                invalidName.printStackTrace(System.err);
             } catch (NotFound notFound) {
-                notFound.printStackTrace();
+                notFound.printStackTrace(System.err);
             }
         }).start();
         // 4
         new Thread(() -> {
             try {
-                String managerID = "MTL2114";
+                String managerID = "MTL2111";
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
 
@@ -236,19 +236,19 @@ public class ManagerClient {
                 String recordID = frontEnd.createSRecord(managerID, "Phi Son", "Van Mai", "social and information network", "Inactive");
                 client.writeLog(recordID + " is created");
             } catch (IOException e) {
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             } catch (CannotProceed cannotProceed) {
-                cannotProceed.printStackTrace();
+                cannotProceed.printStackTrace(System.err);
             } catch (InvalidName invalidName) {
-                invalidName.printStackTrace();
+                invalidName.printStackTrace(System.err);
             } catch (NotFound notFound) {
-                notFound.printStackTrace();
+                notFound.printStackTrace(System.err);
             }
         }).start();
         // 5
         new Thread(() -> {
             try {
-                String managerID = "MTL2115";
+                String managerID = "MTL2111";
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
 
@@ -259,19 +259,19 @@ public class ManagerClient {
                 String recordID = frontEnd.createSRecord(managerID, "Duc Minh", "Vuong", "advanced programming practice", "Inactive");
                 client.writeLog(recordID + " is created");
             } catch (IOException e) {
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             } catch (CannotProceed cannotProceed) {
-                cannotProceed.printStackTrace();
+                cannotProceed.printStackTrace(System.err);
             } catch (InvalidName invalidName) {
-                invalidName.printStackTrace();
+                invalidName.printStackTrace(System.err);
             } catch (NotFound notFound) {
-                notFound.printStackTrace();
+                notFound.printStackTrace(System.err);
             }
         }).start();
         // 6
         new Thread(() -> {
             try {
-                String managerID = "MTL2116";
+                String managerID = "MTL2111";
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
 
@@ -279,22 +279,22 @@ public class ManagerClient {
                 FE frontEnd = FEHelper.narrow(namingContextRef.resolve_str(Config.CORBA.FRONT_END_NAME));
                 client.writeLog(managerID + " connect to Front-End successfully");
 
-                String recordID = frontEnd.createTRecord(managerID, "Trieu Nguyen", "Van", "sherbrooke", "123 784 5678", "information technology", "QM_MTL");
+                String recordID = frontEnd.createTRecord(managerID, "Trieu Nguyen", "Van", "sherbrooke", "123 784 5678", "information technology", "MTL");
                 client.writeLog(recordID + " is created");
             } catch (IOException e) {
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             } catch (CannotProceed cannotProceed) {
-                cannotProceed.printStackTrace();
+                cannotProceed.printStackTrace(System.err);
             } catch (InvalidName invalidName) {
-                invalidName.printStackTrace();
+                invalidName.printStackTrace(System.err);
             } catch (NotFound notFound) {
-                notFound.printStackTrace();
+                notFound.printStackTrace(System.err);
             }
         }).start();
         // 7
         new Thread(() -> {
             try {
-                String managerID = "MTL2117";
+                String managerID = "MTL2111";
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
 
@@ -302,22 +302,22 @@ public class ManagerClient {
                 FE frontEnd = FEHelper.narrow(namingContextRef.resolve_str(Config.CORBA.FRONT_END_NAME));
                 client.writeLog(managerID + " connect to Front-End successfully");
 
-                String recordID = frontEnd.createTRecord(managerID, "Nguyen Gia", "Vo", "sir george williams", "432 964 1930", "architect", "QM_MTL");
+                String recordID = frontEnd.createTRecord(managerID, "Nguyen Gia", "Vo", "sir george williams", "432 964 1930", "architect", "MTL");
                 client.writeLog(recordID + " is created");
             } catch (IOException e) {
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             } catch (CannotProceed cannotProceed) {
-                cannotProceed.printStackTrace();
+                cannotProceed.printStackTrace(System.err);
             } catch (InvalidName invalidName) {
-                invalidName.printStackTrace();
+                invalidName.printStackTrace(System.err);
             } catch (NotFound notFound) {
-                notFound.printStackTrace();
+                notFound.printStackTrace(System.err);
             }
         }).start();
         // 8
         new Thread(() -> {
             try {
-                String managerID = "MTL2118";
+                String managerID = "MTL2111";
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
 
@@ -325,22 +325,22 @@ public class ManagerClient {
                 FE frontEnd = FEHelper.narrow(namingContextRef.resolve_str(Config.CORBA.FRONT_END_NAME));
                 client.writeLog(managerID + " connect to Front-End successfully");
 
-                String recordID = frontEnd.createTRecord(managerID, "Mai Huong", "Van", "cavendish", "849 282 4567", "drawing", "QM_MTL");
+                String recordID = frontEnd.createTRecord(managerID, "Mai Huong", "Van", "cavendish", "849 282 4567", "drawing", "MTL");
                 client.writeLog(recordID + " is created");
             } catch (IOException e) {
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             } catch (CannotProceed cannotProceed) {
-                cannotProceed.printStackTrace();
+                cannotProceed.printStackTrace(System.err);
             } catch (InvalidName invalidName) {
-                invalidName.printStackTrace();
+                invalidName.printStackTrace(System.err);
             } catch (NotFound notFound) {
-                notFound.printStackTrace();
+                notFound.printStackTrace(System.err);
             }
         }).start();
         // 9
         new Thread(() -> {
             try {
-                String managerID = "MTL2119";
+                String managerID = "MTL2111";
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
 
@@ -348,22 +348,22 @@ public class ManagerClient {
                 FE frontEnd = FEHelper.narrow(namingContextRef.resolve_str(Config.CORBA.FRONT_END_NAME));
                 client.writeLog(managerID + " connect to Front-End successfully");
 
-                String recordID = frontEnd.createTRecord(managerID, "Nguyen", "Vova", "mont royal", "514 234 9705", "electric", "QM_MTL");
+                String recordID = frontEnd.createTRecord(managerID, "Nguyen", "Vova", "mont royal", "514 234 9705", "electric", "MTL");
                 client.writeLog(recordID + " is created");
             } catch (IOException e) {
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             } catch (CannotProceed cannotProceed) {
-                cannotProceed.printStackTrace();
+                cannotProceed.printStackTrace(System.err);
             } catch (InvalidName invalidName) {
-                invalidName.printStackTrace();
+                invalidName.printStackTrace(System.err);
             } catch (NotFound notFound) {
-                notFound.printStackTrace();
+                notFound.printStackTrace(System.err);
             }
         }).start();
         // 10
         new Thread(() -> {
             try {
-                String managerID = "MTL2110";
+                String managerID = "MTL2111";
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
 
@@ -371,16 +371,16 @@ public class ManagerClient {
                 FE frontEnd = FEHelper.narrow(namingContextRef.resolve_str(Config.CORBA.FRONT_END_NAME));
                 client.writeLog(managerID + " connect to Front-End successfully");
 
-                String recordID = frontEnd.createTRecord(managerID, "Nguyen Binh", "Vuon", "metcalfe", "125 765 3378", "chemistry", "QM_MTL");
+                String recordID = frontEnd.createTRecord(managerID, "Nguyen Binh", "Vuon", "metcalfe", "125 765 3378", "chemistry", "MTL");
                 client.writeLog(recordID + " is created");
             } catch (IOException e) {
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             } catch (CannotProceed cannotProceed) {
-                cannotProceed.printStackTrace();
+                cannotProceed.printStackTrace(System.err);
             } catch (InvalidName invalidName) {
-                invalidName.printStackTrace();
+                invalidName.printStackTrace(System.err);
             } catch (NotFound notFound) {
-                notFound.printStackTrace();
+                notFound.printStackTrace(System.err);
             }
         }).start();
     }
@@ -403,19 +403,19 @@ public class ManagerClient {
                 String result = frontEnd.editRecord(managerID, recordID, "coursesRegistered", "edited courses registered");
                 client.writeLog(result);
             } catch (IOException e) {
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             } catch (CannotProceed cannotProceed) {
-                cannotProceed.printStackTrace();
+                cannotProceed.printStackTrace(System.err);
             } catch (InvalidName invalidName) {
-                invalidName.printStackTrace();
+                invalidName.printStackTrace(System.err);
             } catch (NotFound notFound) {
-                notFound.printStackTrace();
+                notFound.printStackTrace(System.err);
             }
         }).start();
         // 2
         new Thread(() -> {
             try {
-                String managerID = "MTL3113";
+                String managerID = "MTL3111";
                 String recordID = studentRecordID;
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
@@ -423,22 +423,22 @@ public class ManagerClient {
                 // Pass the NameComponent to the NamingService to get the object, then narrow it to proper type
                 FE frontEnd = FEHelper.narrow(namingContextRef.resolve_str(Config.CORBA.FRONT_END_NAME));
 
-                String result = frontEnd.transferRecord(managerID, recordID, "QM_LVL");
+                String result = frontEnd.transferRecord(managerID, recordID, "LVL");
                 client.writeLog(result);
             } catch (IOException e) {
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             } catch (CannotProceed cannotProceed) {
-                cannotProceed.printStackTrace();
+                cannotProceed.printStackTrace(System.err);
             } catch (InvalidName invalidName) {
-                invalidName.printStackTrace();
+                invalidName.printStackTrace(System.err);
             } catch (NotFound notFound) {
-                notFound.printStackTrace();
+                notFound.printStackTrace(System.err);
             }
         }).start();
         // 3
         new Thread(() -> {
             try {
-                String managerID = "MTL3112";
+                String managerID = "MTL3111";
                 String recordID = studentRecordID;
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
@@ -449,19 +449,19 @@ public class ManagerClient {
                 String result = frontEnd.editRecord(managerID, recordID, "status", "edited status");
                 client.writeLog(result);
             } catch (IOException e) {
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             } catch (CannotProceed cannotProceed) {
-                cannotProceed.printStackTrace();
+                cannotProceed.printStackTrace(System.err);
             } catch (InvalidName invalidName) {
-                invalidName.printStackTrace();
+                invalidName.printStackTrace(System.err);
             } catch (NotFound notFound) {
-                notFound.printStackTrace();
+                notFound.printStackTrace(System.err);
             }
         }).start();
         // 4
         new Thread(() -> {
             try {
-                String managerID = "MTL3114";
+                String managerID = "MTL3111";
                 String recordID = teacherRecordID;
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
@@ -472,19 +472,19 @@ public class ManagerClient {
                 String result = frontEnd.editRecord(managerID, recordID, "address", "edited address");
                 client.writeLog(result);
             } catch (IOException e) {
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             } catch (CannotProceed cannotProceed) {
-                cannotProceed.printStackTrace();
+                cannotProceed.printStackTrace(System.err);
             } catch (InvalidName invalidName) {
-                invalidName.printStackTrace();
+                invalidName.printStackTrace(System.err);
             } catch (NotFound notFound) {
-                notFound.printStackTrace();
+                notFound.printStackTrace(System.err);
             }
         }).start();
         // 5
         new Thread(() -> {
             try {
-                String managerID = "MTL3117";
+                String managerID = "MTL3111";
                 String recordID = teacherRecordID;
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
@@ -492,22 +492,22 @@ public class ManagerClient {
                 // Pass the NameComponent to the NamingService to get the object, then narrow it to proper type
                 FE frontEnd = FEHelper.narrow(namingContextRef.resolve_str(Config.CORBA.FRONT_END_NAME));
 
-                String result = frontEnd.transferRecord(managerID, recordID, "QM_DDO");
+                String result = frontEnd.transferRecord(managerID, recordID, "DDO");
                 client.writeLog(result);
             } catch (IOException e) {
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             } catch (CannotProceed cannotProceed) {
-                cannotProceed.printStackTrace();
+                cannotProceed.printStackTrace(System.err);
             } catch (InvalidName invalidName) {
-                invalidName.printStackTrace();
+                invalidName.printStackTrace(System.err);
             } catch (NotFound notFound) {
-                notFound.printStackTrace();
+                notFound.printStackTrace(System.err);
             }
         }).start();
         // 6
         new Thread(() -> {
             try {
-                String managerID = "MTL3116";
+                String managerID = "MTL3111";
                 String recordID = teacherRecordID;
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();
@@ -518,19 +518,19 @@ public class ManagerClient {
                 String result = frontEnd.editRecord(managerID, recordID, "location", "edited location");
                 client.writeLog(result);
             } catch (IOException e) {
-                e.printStackTrace();
+                e.printStackTrace(System.err);
             } catch (CannotProceed cannotProceed) {
-                cannotProceed.printStackTrace();
+                cannotProceed.printStackTrace(System.err);
             } catch (InvalidName invalidName) {
-                invalidName.printStackTrace();
+                invalidName.printStackTrace(System.err);
             } catch (NotFound notFound) {
-                notFound.printStackTrace();
+                notFound.printStackTrace(System.err);
             }
         }).start();
         // 7
         new Thread(() -> {
             try {
-                String managerID = "MTL3115";
+                String managerID = "MTL3111";
                 String recordID = teacherRecordID;
                 ManagerClient client = new ManagerClient(managerID);
                 client.initiateLogger();

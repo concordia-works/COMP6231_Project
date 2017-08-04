@@ -37,17 +37,17 @@ public class ReplicaManager implements Runnable {
     private final Object fifoLock = new Object();
     private Config.ARCHITECTURE.REPLICAS leaderID;
     private Map<Integer, Integer> acknowledgementMap;
-    private static final Object acknowledgeLock = new Object();
-    private Election election;
-    private Map<Integer, Integer> frontEndPortsMap; // to know the port that FrontEnd is using to wait for a response
-    private static final Object frontEndPortsLock = new Object();
+    private final Object acknowledgeLock = new Object();
+    private HeartBeat heartBeat;
+    private Map<String, Map<Integer, Integer>> frontEndPortsMap; // to know the port that FrontEnd is using to wait for a response
+    private final Object frontEndPortsLock = new Object();
 
     public ReplicaManager(Config.ARCHITECTURE.REPLICAS replicaManagerID) {
         try {
             prepareORB();
             this.replicaManagerID = replicaManagerID;
             this.acknowledgementMap = Collections.synchronizedMap(new HashMap<Integer, Integer>());
-            this.frontEndPortsMap = Collections.synchronizedMap(new HashMap<Integer, Integer>());
+            this.frontEndPortsMap = Collections.synchronizedMap(new HashMap<>());
             this.fifo = new FIFO();
 
             switch (replicaManagerID) {
@@ -56,24 +56,21 @@ public class ReplicaManager implements Runnable {
                     this.fromLeaderPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getCoefficient() * Config.UDP.PORT_LEADER_TO_BACKUPS;
                     this.fromBackupPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getCoefficient() * Config.UDP.PORT_BACKUPS_TO_LEADER;
                     this.heartBeatPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getCoefficient() * Config.UDP.PORT_HEART_BEAT;
-//                    HeartBeat h1 = new HeartBeat(Config.ARCHITECTURE.REPLICAS.KEN_RO,Config.UDP.PORT_HEART_BEAT);
-//                    h1.start();
+                    this.heartBeat = new HeartBeat(Config.ARCHITECTURE.REPLICAS.KEN_RO, this.heartBeatPort);
                     break;
                 case KAMAL:
                     this.fromFrontEndPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getCoefficient() * Config.UDP.PORT_FRONT_END_TO_LEADER;
                     this.fromLeaderPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getCoefficient() * Config.UDP.PORT_LEADER_TO_BACKUPS;
                     this.fromBackupPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getCoefficient() * Config.UDP.PORT_BACKUPS_TO_LEADER;
                     this.heartBeatPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getCoefficient() * Config.UDP.PORT_HEART_BEAT;
-//                    HeartBeat h2=new HeartBeat(Config.ARCHITECTURE.REPLICAS.KAMAL,Config.UDP.PORT_HEART_BEAT);
-//                    h2.start();
+                    this.heartBeat = new HeartBeat(Config.ARCHITECTURE.REPLICAS.KAMAL, this.heartBeatPort);
                     break;
                 case MINH:
                     this.fromFrontEndPort = Config.ARCHITECTURE.REPLICAS.MINH.getCoefficient() * Config.UDP.PORT_FRONT_END_TO_LEADER;
                     this.fromLeaderPort = Config.ARCHITECTURE.REPLICAS.MINH.getCoefficient() * Config.UDP.PORT_LEADER_TO_BACKUPS;
                     this.fromBackupPort = Config.ARCHITECTURE.REPLICAS.MINH.getCoefficient() * Config.UDP.PORT_BACKUPS_TO_LEADER;
                     this.heartBeatPort = Config.ARCHITECTURE.REPLICAS.MINH.getCoefficient() * Config.UDP.PORT_HEART_BEAT;
-//                    HeartBeat h3 = new HeartBeat(Config.ARCHITECTURE.REPLICAS.MINH,Config.UDP.PORT_HEART_BEAT);
-//                    h3.start();
+                    this.heartBeat = new HeartBeat(Config.ARCHITECTURE.REPLICAS.MINH, this.heartBeatPort);
                     break;
                 default:
                     // Do nothing
@@ -82,11 +79,9 @@ public class ReplicaManager implements Runnable {
 
             new Thread(() -> listenNewLeader()).start();
 
-            // When a new Replica Manager starts, it will raise a new election
-            this.election = new Election(replicaManagerID);
-            new Thread(this.election).start();
+            new Thread(this.heartBeat).start();
         } catch (Exception e) {
-            e.printStackTrace(System.out);
+            e.printStackTrace(System.err);
         }
     }
 
@@ -174,8 +169,7 @@ public class ReplicaManager implements Runnable {
             startListening();
             orb.run();
         } catch (Exception e) {
-            System.out.println("ERROR: " + e);
-            e.printStackTrace(System.out);
+            e.printStackTrace(System.err);
         }
     }
 
@@ -231,7 +225,7 @@ public class ReplicaManager implements Runnable {
             startListening();
             orb.run();
         } catch (Exception e) {
-            e.printStackTrace();
+            e.printStackTrace(System.err);
         }
     }
 
@@ -277,7 +271,7 @@ public class ReplicaManager implements Runnable {
                     mtlDcmsServer.startUDPServer();
 //                        System.out.println(String.format(Config.LOGGING.UDP_START, Config.ARCHITECTURE.REPLICAS.KEN_RO.name(), Config.ARCHITECTURE.SERVER_ID.QM_MTL.name(), Config.UDP.KENRO_UDP_MTL));
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    e.printStackTrace(System.err);
                 }
             }).start();
 //            System.out.println(String.format(Config.LOGGING.SERVER_START, Config.ARCHITECTURE.REPLICAS.KEN_RO.name(), Config.ARCHITECTURE.SERVER_ID.QM_MTL.name()));
@@ -287,7 +281,7 @@ public class ReplicaManager implements Runnable {
                     lvlDcmsServer.startUDPServer();
 //                        System.out.println(String.format(Config.LOGGING.UDP_START, Config.ARCHITECTURE.REPLICAS.KEN_RO.name(), Config.ARCHITECTURE.SERVER_ID.QM_LVL.name(), Config.UDP.KENRO_UDP_LVL));
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    e.printStackTrace(System.err);
                 }
             }).start();
 //            System.out.println(String.format(Config.LOGGING.SERVER_START, Config.ARCHITECTURE.REPLICAS.KEN_RO.name(), Config.ARCHITECTURE.SERVER_ID.QM_LVL.name()));
@@ -297,7 +291,7 @@ public class ReplicaManager implements Runnable {
                     ddoDcmsServer.startUDPServer();
 //                        System.out.println(String.format(Config.LOGGING.UDP_START, Config.ARCHITECTURE.REPLICAS.KEN_RO.name(), Config.ARCHITECTURE.SERVER_ID.QM_DDO.name(), Config.UDP.KENRO_UDP_DDO));
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    e.printStackTrace(System.err);
                 }
             }).start();
 //            System.out.println(String.format(Config.LOGGING.SERVER_START, Config.ARCHITECTURE.REPLICAS.KEN_RO.name(), Config.ARCHITECTURE.SERVER_ID.QM_DDO.name()));
@@ -330,7 +324,9 @@ public class ReplicaManager implements Runnable {
                     System.out.println(replicaManagerID.name() + ": receives " + request.getSequenceNumber() + " " + request.getFullInvocation() + " from FrontEnd");
 
                     synchronized (frontEndPortsLock) {
-                        frontEndPortsMap.put(request.getSequenceNumber(), requestPacket.getPort());
+                        Map<Integer, Integer> portsMap = frontEndPortsMap.getOrDefault(request.getManagerID(), new HashMap<>());
+                        portsMap.put(request.getSequenceNumber(), requestPacket.getPort());
+                        frontEndPortsMap.put(request.getManagerID(), portsMap);
                     }
 
                     String managerID = request.getManagerID();
@@ -419,8 +415,9 @@ public class ReplicaManager implements Runnable {
                     // Forward the response using FIFO's reliable unicast
                     int portFrontEnd;
                     synchronized (frontEndPortsLock) {
-                        portFrontEnd = frontEndPortsMap.get(currentResponse.getSequenceNumber());
-                        frontEndPortsMap.remove(currentResponse.getSequenceNumber());
+                        Map<Integer, Integer> portsMap = frontEndPortsMap.get(response.getManagerID());
+                        portFrontEnd = portsMap.get(currentResponse.getSequenceNumber());
+                        portsMap.remove(currentResponse.getSequenceNumber());
                     }
                     byte[] buffer = currentResponse.serialize();
                     DatagramPacket responsePacket = new DatagramPacket(buffer, buffer.length, InetAddress.getLocalHost(), portFrontEnd);
@@ -537,7 +534,7 @@ public class ReplicaManager implements Runnable {
             }
             response = new Response(request, isSuccess, result);
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            e.printStackTrace(System.err);
         }
         return response;
     }
@@ -640,7 +637,7 @@ public class ReplicaManager implements Runnable {
             unicast = new Unicast(leaderPort);
             unicast.send(String.valueOf(request.getSequenceNumber()).getBytes());
         } catch (SocketException e) {
-            e.printStackTrace();
+            e.printStackTrace(System.err);
         } finally {
             if (unicast != null && unicast.isSocketOpen())
                 unicast.closeSocket();
@@ -667,20 +664,11 @@ public class ReplicaManager implements Runnable {
                 }).start();
             }
         } catch (Exception e) {
-            e.printStackTrace(System.out);
+            e.printStackTrace(System.err);
         } finally {
             if (socket != null)
                 socket.close();
         }
-//        try {
-//            for (int i = 0; i < Config.ARCHITECTURE.REPLICAS.values().length - 1; i++) {
-//                byte[] buffer = new byte[50];
-//                DatagramPacket acknowledgePacket = new DatagramPacket(buffer, buffer.length);
-//                socket.receive(acknowledgePacket);
-//            }
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
     }
 
     private void prepareORB() throws Exception {
@@ -721,31 +709,34 @@ public class ReplicaManager implements Runnable {
                 }
                 sleep(50);
             } catch (InterruptedException e) {
-                e.printStackTrace(System.out);
+                e.printStackTrace(System.err);
             }
         }
     }
 
     private void listenNewLeader() {
-        DatagramSocket socket = null;
-        try {
-            socket = new DatagramSocket(this.replicaManagerID.getCoefficient() * Config.UDP.PORT_NEW_LEADER);
-            byte[] buffer = new byte[1000];
-            DatagramPacket datagramPacket = new DatagramPacket(buffer, buffer.length);
-            socket.receive(datagramPacket);
-            String[] datagramContent = new String(datagramPacket.getData()).trim().split(",");
-            this.leaderID = Config.ARCHITECTURE.REPLICAS.valueOf(datagramContent[1]);
-            noOfAliveRM = Integer.valueOf(datagramContent[0]);
-//            if (leaderID != this.replicaManagerID)
-//                isLeader = false;
-//            else
-//                isLeader = true;
-            System.out.println(this.replicaManagerID.name() + ": " + noOfAliveRM + " RMs alive, new leader is " + leaderID.name());
-        } catch (Exception e) {
-            e.printStackTrace(System.out);
-        } finally {
-            if (socket != null)
-                socket.close();
+        while (true) {
+            DatagramSocket socket = null;
+            try {
+                socket = new DatagramSocket(this.replicaManagerID.getCoefficient() * Config.UDP.PORT_NEW_LEADER);
+                byte[] buffer = new byte[1000];
+                DatagramPacket datagramPacket = new DatagramPacket(buffer, buffer.length);
+//                System.out.println(replicaManagerID + ": listening to new leader");
+                socket.receive(datagramPacket);
+
+                new Thread(() -> {
+                    String[] datagramContent = new String(datagramPacket.getData()).trim().split(",");
+                    leaderID = Config.ARCHITECTURE.REPLICAS.valueOf(datagramContent[1]);
+                    heartBeat.updateLeaderID(leaderID);
+                    noOfAliveRM = Integer.valueOf(datagramContent[0]);
+                    System.out.println(this.replicaManagerID.name() + ": " + noOfAliveRM + " RMs alive, new leader is " + leaderID.name());
+                }).start();
+            } catch (Exception e) {
+                e.printStackTrace(System.err);
+            } finally {
+                if (socket != null)
+                    socket.close();
+            }
         }
     }
 

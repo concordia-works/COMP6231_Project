@@ -9,10 +9,9 @@ import java.net.*;
 
 import static java.lang.Thread.sleep;
 
-class Election implements Runnable {
+class Election {
     private Config.ARCHITECTURE.REPLICAS replicaManagerID = null;
     private DatagramSocket listeningSocket;
-    private int timeout;
     private int noOfAliveRM;
     private static final Object noOfAliveRMLock = new Object();
     private Config.ARCHITECTURE.REPLICAS currentLeader;
@@ -21,31 +20,27 @@ class Election implements Runnable {
         this.replicaManagerID = replicaManagerID;
         int port = replicaManagerID.getCoefficient() * Config.UDP.PORT_ELECTION;
         this.listeningSocket = new DatagramSocket(port);
-        this.timeout = Config.ELECTION.ANSWER_TIMEOUT;
     }
 
-    public void startElection() {
+    public Config.ARCHITECTURE.REPLICAS startElection(boolean[] replicasStatus) {
         try {
             this.noOfAliveRM = 1;
             currentLeader = this.replicaManagerID;
 
-            boolean[] replicasStatus = new boolean[Config.ARCHITECTURE.REPLICAS.values().length];
-            replicasStatus[replicaManagerID.getCoefficient() - 1] = true;
             for (Config.ARCHITECTURE.REPLICAS replicaID : Config.ARCHITECTURE.REPLICAS.values()) {
-                if (replicaID.getCoefficient() != this.replicaManagerID.getCoefficient()) {
-                    Config.ARCHITECTURE.REPLICAS threadReplicaID = replicaID;
-                    checkAlive(threadReplicaID, replicasStatus);
-                }
+                if (replicaID.getCoefficient() != this.replicaManagerID.getCoefficient())
+                    checkAlive(replicaID, replicasStatus);
             }
             // Wait for responses from all alive replicas
             sleep(Config.ELECTION.ELECTION_TIMEOUT);
             for (Config.ARCHITECTURE.REPLICAS replicaID : Config.ARCHITECTURE.REPLICAS.values()) {
-                if (replicasStatus[replicaID.getCoefficient() - 1] == true)
+                if (replicasStatus[replicaID.getCoefficient() - 1])
                     currentLeader = replicaID;
             }
         } catch (InterruptedException e) {
-            e.printStackTrace(System.out);
+            e.printStackTrace(System.err);
         }
+        return currentLeader;
     }
 
     private void sendElectionMessage(DatagramSocket socket, Config.ARCHITECTURE.REPLICAS toReplicaID) {
@@ -53,7 +48,7 @@ class Election implements Runnable {
             byte[] buffer = Config.ELECTION.MESSAGE.getBytes();
             DatagramPacket electionPacket = new DatagramPacket(buffer, buffer.length, InetAddress.getLocalHost(), toReplicaID.getCoefficient() * Config.UDP.PORT_ELECTION);
             socket.send(electionPacket);
-//            System.out.println(this.replicaManagerID.name() + " send election message to replica " + toReplicaID.name() + " from port " + socket.getLocalPort() + " to port " + toReplicaID.getCoefficient() * Config.UDP.PORT_ELECTION);
+            System.out.println(this.replicaManagerID.name() + " send election message to " + toReplicaID.name() + " from port " + socket.getLocalPort() + " to port " + toReplicaID.getCoefficient() * Config.UDP.PORT_ELECTION);
         } catch (Exception e) {
             e.printStackTrace(System.out);
         }
@@ -64,7 +59,7 @@ class Election implements Runnable {
             byte[] buffer = new byte[1000];
             DatagramPacket answerPacket = new DatagramPacket(buffer, buffer.length);
             try {
-                socket.setSoTimeout(timeout);
+                socket.setSoTimeout(Config.ELECTION.ANSWER_TIMEOUT);
                 socket.receive(answerPacket);
                 String answerContent = new String(answerPacket.getData()).trim();
                 if (answerContent.compareTo(Config.ELECTION.RESPONSE) == 0) {
@@ -76,11 +71,10 @@ class Election implements Runnable {
                 }
             } catch (SocketTimeoutException e) {
                 System.err.println(this.replicaManagerID.name() + " don't get answer at port " + socket.getLocalPort());
-//                e.printStackTrace(System.out);
+//                e.printStackTrace(System.err);
                 return false;
             } catch (Exception e) {
-                System.err.println("Error: " + e);
-//                e.printStackTrace(System.out);
+                e.printStackTrace(System.err);
                 return false;
             } finally {
                 socket.close();
@@ -89,7 +83,7 @@ class Election implements Runnable {
             return false;
     }
 
-    private void listenToElectionMessage() {
+    public void listenToElectionMessage() {
         while (true) {
             try {
                 byte[] receiveBuffer = new byte[1000];
@@ -97,15 +91,21 @@ class Election implements Runnable {
 //                System.out.println(this.replicaManagerID.name() + " listen to election message at port " + listeningSocket.getLocalPort());
                 listeningSocket.receive(electionPacket);
 //                System.out.println(this.replicaManagerID.name() + " get the election message");
-                String receiveContent = new String(electionPacket.getData()).trim();
-                if (receiveContent.compareTo(Config.ELECTION.MESSAGE) == 0) {
-                    byte[] sendBuffer = Config.ELECTION.RESPONSE.getBytes();
-                    DatagramPacket sendingPacket = new DatagramPacket(sendBuffer, sendBuffer.length, InetAddress.getLocalHost(), electionPacket.getPort());
-                    listeningSocket.send(sendingPacket);
-//                    System.out.println(this.replicaManagerID.name() + " response to the election message to port " + sendingPacket.getPort());
-                }
+                new Thread(() -> {
+                    String receiveContent = new String(electionPacket.getData()).trim();
+                    try {
+                        if (receiveContent.compareTo(Config.ELECTION.MESSAGE) == 0) {
+                            byte[] sendBuffer = Config.ELECTION.RESPONSE.getBytes();
+                            DatagramPacket sendingPacket = new DatagramPacket(sendBuffer, sendBuffer.length, InetAddress.getLocalHost(), electionPacket.getPort());
+                            listeningSocket.send(sendingPacket);
+//                            System.out.println(this.replicaManagerID.name() + " response to the election message to port " + sendingPacket.getPort());
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace(System.err);
+                    }
+                }).start();
             } catch (IOException e) {
-                e.printStackTrace(System.out);
+                e.printStackTrace(System.err);
             }
         }
     }
@@ -123,7 +123,7 @@ class Election implements Runnable {
             }
             DatagramPacket datagramPacket = new DatagramPacket(buffer, buffer.length, InetAddress.getLocalHost(), Config.FRONT_END.COEFFICIENT * Config.UDP.PORT_NEW_LEADER);
             socket.send(datagramPacket);
-//            System.out.println(this.replicaManagerID.name() + " announce " + noOfAliveRM + " RM alive, new leader " + currentLeader.name() + " to FrontEnd");
+            System.out.println(this.replicaManagerID.name() + " announce " + noOfAliveRM + " RM alive, new leader " + currentLeader.name() + " to everyone");
         } catch (Exception e) {
             e.printStackTrace(System.err);
         } finally {
@@ -132,11 +132,11 @@ class Election implements Runnable {
         }
     }
 
-    private void checkAlive(Config.ARCHITECTURE.REPLICAS threadReplicaID, boolean[] replicasStatus) {
+    private void checkAlive(Config.ARCHITECTURE.REPLICAS replicaID, boolean[] replicasStatus) {
         new Thread(() -> {
             try {
                 DatagramSocket socket = new DatagramSocket();
-                sendElectionMessage(socket, threadReplicaID);
+                sendElectionMessage(socket, replicaID);
                 boolean isReplicaAlive = listenToElectionAnswer(socket);
                 if (isReplicaAlive) {
                     synchronized (noOfAliveRMLock) {
@@ -144,25 +144,11 @@ class Election implements Runnable {
                     }
                 }
                 synchronized (replicasStatus) {
-                    replicasStatus[threadReplicaID.getCoefficient() - 1] = isReplicaAlive;
+                    replicasStatus[replicaID.getCoefficient() - 1] = isReplicaAlive;
                 }
             } catch (SocketException e) {
                 e.printStackTrace(System.err);
             }
         }).start();
-    }
-
-    @Override
-    public void run() {
-        new Thread(() -> listenToElectionMessage()).start();
-
-        try {
-            sleep(Config.ELECTION.ELECTION_DELAY);
-//            System.out.println(this.replicaManagerID.name() + " starts new election");
-            startElection();
-            announceNewLeader();
-        } catch (InterruptedException e) {
-            e.printStackTrace(System.err);
-        }
     }
 }
