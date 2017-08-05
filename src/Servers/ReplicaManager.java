@@ -817,6 +817,15 @@ public class ReplicaManager implements Runnable {
                             case transferRecord:
                                 request = new Request(-1, arguments[0], Config.REQUEST.METHODS_NAME.transferRecord, arguments[1], arguments[2]);
                                 break;
+                            case getRecordsCount:
+                                request = new Request(-1, arguments[0], Config.REQUEST.METHODS_NAME.transferRecord, arguments[1]);
+                                break;
+                            case printRecord:
+                                request = new Request(-1, arguments[0], Config.REQUEST.METHODS_NAME.transferRecord, arguments[1], arguments[2]);
+                                break;
+                            case printAllRecords:
+                                request = new Request(-1, arguments[0], Config.REQUEST.METHODS_NAME.transferRecord, arguments[1]);
+                                break;
                             default:
                                 // Do nothing
                                 break;

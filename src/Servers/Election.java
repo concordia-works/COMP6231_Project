@@ -25,7 +25,7 @@ class Election {
     }
 
     public Config.ARCHITECTURE.REPLICAS startElection(boolean[] replicasStatus) {
-//        try {
+        try {
             this.noOfAliveRM = 1;
             currentLeader = this.replicaManagerID;
 
@@ -34,14 +34,14 @@ class Election {
                     checkAlive(replicaID, replicasStatus);
             }
             // Wait for responses from all alive replicas
-//            sleep(Config.ELECTION.ELECTION_TIMEOUT);
+            sleep(Config.ELECTION.ELECTION_TIMEOUT);
             for (Config.ARCHITECTURE.REPLICAS replicaID : Config.ARCHITECTURE.REPLICAS.values()) {
                 if (replicasStatus[replicaID.getCoefficient() - 1])
                     currentLeader = replicaID;
             }
-//        } catch (InterruptedException e) {
-//            e.printStackTrace(System.err);
-//        }
+        } catch (InterruptedException e) {
+            e.printStackTrace(System.err);
+        }
         return currentLeader;
     }
 
