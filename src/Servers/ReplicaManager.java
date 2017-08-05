@@ -42,7 +42,6 @@ public class ReplicaManager implements Runnable {
     private HeartBeat heartBeat;
     private Map<String, Map<Integer, Integer>> frontEndPortsMap; // to know the port that FrontEnd is using to wait for a response
     private final Object frontEndPortsLock = new Object();
-    private FileWriter fileWriter;
     private final Object fileWriterLock = new Object();
     private String fileName;
 
@@ -81,7 +80,6 @@ public class ReplicaManager implements Runnable {
                     break;
             }
 
-            fileWriter = new FileWriter(replicaManagerID.name() + ".txt", true);
             fileName = replicaManagerID.name() + ".txt";
 
             new Thread(() -> listenNewLeader()).start();

@@ -18,7 +18,10 @@ class Election {
     public Election(Config.ARCHITECTURE.REPLICAS replicaManagerID) throws SocketException {
         this.replicaManagerID = replicaManagerID;
 
-        new Thread(() -> listenToElectionMessage()).start();
+        new Thread(() -> {
+            listenToElectionMessage();
+            return;
+        }).start();
     }
 
     public Config.ARCHITECTURE.REPLICAS startElection(boolean[] replicasStatus) {
@@ -62,6 +65,7 @@ class Election {
             } finally {
                 if (socket != null)
                     socket.close();
+                return;
             }
 //        }).start();
     }
@@ -115,7 +119,7 @@ class Election {
                 System.out.println(replicaManagerID.name() + " listen to election message at port " + listeningSocket.getLocalPort());
                 listeningSocket.receive(electionPacket);
 //                System.out.println(this.replicaManagerID.name() + " get the election message");
-//                new Thread(() -> {
+                new Thread(() -> {
                     String receiveContent = new String(electionPacket.getData()).trim();
                     DatagramSocket answerSocket = null;
                     try {
@@ -131,8 +135,9 @@ class Election {
                     } finally {
                         if (answerSocket != null)
                             answerSocket.close();
+                        return;
                     }
-//                }).start();
+                }).start();
             }
         } catch (IOException e) {
             e.printStackTrace(System.err);

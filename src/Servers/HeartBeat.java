@@ -147,7 +147,7 @@ public class HeartBeat implements Runnable {
 //                            System.out.println("currentTime - mostRecentTime = " + currentTime + " - " + mostRecentTime + " = " + (currentTime - mostRecentTime));
 
                         // The replica is failed
-                        if (currentTime - mostRecentTime > Config.HEARTBEAT.HEART_BEAT_TIMEOUT * 2) {
+                        if (currentTime - mostRecentTime > Config.HEARTBEAT.HEART_BEAT_TIMEOUT) {
                             System.out.println(replicaManagerID.name() + ": knows " + replicaID.name() + " is CRASH, current leader is " + leaderID);
                             synchronized (replicaManagerStatusLock) {
                                 replicaManagerStatus.put(replicaID, false);

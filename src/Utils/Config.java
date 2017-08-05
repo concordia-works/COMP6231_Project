@@ -8,9 +8,9 @@ public class Config {
 
     public static class ARCHITECTURE {
         public enum REPLICAS {
-            MINH(1), KAMAL(2), KEN_RO(3);
+//            MINH(1), KAMAL(2), KEN_RO(3);
 //            KEN_RO(1), MINH(2), KAMAL(3);
-//            KAMAL(1), KEN_RO(2), MINH(3);
+            KAMAL(1), KEN_RO(2), MINH(3);
 
             private final int coefficient;
             REPLICAS(int coefficient) { this.coefficient = coefficient; }
@@ -66,8 +66,8 @@ public class Config {
     }
 
     public static class HEARTBEAT {
-        public static final int HEART_BEAT_DELAY = 500;
-        public static final int HEART_BEAT_TIMEOUT = 1000;
+        public static final int HEART_BEAT_DELAY = 5000;
+        public static final int HEART_BEAT_TIMEOUT = 6000;
     }
 
     public static class UI {
