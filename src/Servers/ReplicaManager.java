@@ -614,8 +614,7 @@ public class ReplicaManager implements Runnable {
                              * When the request is put to the queue
                              * But will never be execute until a new request is sent???
                              */
-                        }
-                        else {
+                        } else {
                             // Else the request is duplicated, ignore it
                             System.out.println(replicaManagerID.name() + ": re-receives " + request.getSequenceNumber() + " " + request.getFullInvocation() + " from Leader");
                         }
@@ -715,10 +714,10 @@ public class ReplicaManager implements Runnable {
     }
 
     private void listenNewLeader() {
-        while (true) {
-            DatagramSocket socket = null;
-            try {
-                socket = new DatagramSocket(this.replicaManagerID.getCoefficient() * Config.UDP.PORT_NEW_LEADER);
+        DatagramSocket socket = null;
+        try {
+            socket = new DatagramSocket(this.replicaManagerID.getCoefficient() * Config.UDP.PORT_NEW_LEADER);
+            while (true) {
                 byte[] buffer = new byte[1000];
                 DatagramPacket datagramPacket = new DatagramPacket(buffer, buffer.length);
 //                System.out.println(replicaManagerID + ": listening to new leader");
@@ -729,14 +728,14 @@ public class ReplicaManager implements Runnable {
                     leaderID = Config.ARCHITECTURE.REPLICAS.valueOf(datagramContent[1]);
                     heartBeat.updateLeaderID(leaderID);
                     noOfAliveRM = Integer.valueOf(datagramContent[0]);
-                    System.out.println(this.replicaManagerID.name() + ": " + noOfAliveRM + " RMs alive, new leader is " + leaderID.name());
+                    System.out.println(this.replicaManagerID.name() + " updates " + noOfAliveRM + " RMs alive, new leader is " + leaderID.name());
                 }).start();
-            } catch (Exception e) {
-                e.printStackTrace(System.err);
-            } finally {
-                if (socket != null)
-                    socket.close();
             }
+        } catch (Exception e) {
+            e.printStackTrace(System.err);
+        } finally {
+            if (socket != null)
+                socket.close();
         }
     }
 

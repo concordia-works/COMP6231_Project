@@ -61,13 +61,14 @@ public class Config {
         public static final String MESSAGE = "Election message";
         public static final String RESPONSE = "Election response";
         public static final String ANNOUNCEMENT = "%s,%s";
-        public static final int ANSWER_TIMEOUT = 50;
-        public static final int ELECTION_TIMEOUT = 100;
+        public static final int ANSWER_TIMEOUT = 500;
+        public static final int ANSWER_DELAY = 500;
+        public static final int ELECTION_TIMEOUT = 2000;
         public static final int ELECTION_DELAY = 0;
     }
 
     public static class HEARTBEAT {
-        public static final int HEART_BEAT_DELAY = 100;
+        public static final int HEART_BEAT_DELAY = 500;
         public static final int HEART_BEAT_TIMEOUT = 1000;
     }
 

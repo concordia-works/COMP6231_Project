@@ -61,12 +61,12 @@ public class HeartBeat implements Runnable {
 
         // Start a new election after the RM is online
         new Thread(() -> {
-            new Thread(() -> election.listenToElectionMessage()).start();
+//            new Thread(() -> election.listenToElectionMessage()).start();
 
             try {
                 sleep(Config.ELECTION.ELECTION_DELAY);
 //                System.out.println(replicaManagerID.name() + " starts new election");
-                leaderID = election.startElection(replicasStatus);
+                election.startElection(replicasStatus);
                 election.announceNewLeader();
             } catch (InterruptedException e) {
                 e.printStackTrace(System.err);
@@ -137,7 +137,6 @@ public class HeartBeat implements Runnable {
     private void checkingAlive() {
         try {
             while (true) {
-
                 for (Config.ARCHITECTURE.REPLICAS replicaID : Config.ARCHITECTURE.REPLICAS.values()) {
                     if (isReplicaAlive(replicaID) && replicaID != replicaManagerID) {
                         long mostRecentTime;
@@ -149,7 +148,7 @@ public class HeartBeat implements Runnable {
 
                         // The replica is failed
                         if (currentTime - mostRecentTime > Config.HEARTBEAT.HEART_BEAT_TIMEOUT * 2) {
-                            System.out.println(replicaManagerID.name() + ": knows " + replicaID.name() + " is DEAD, current leader is " + leaderID);
+                            System.out.println(replicaManagerID.name() + ": knows " + replicaID.name() + " is CRASH, current leader is " + leaderID);
                             synchronized (replicaManagerStatusLock) {
                                 replicaManagerStatus.put(replicaID, false);
                             }
