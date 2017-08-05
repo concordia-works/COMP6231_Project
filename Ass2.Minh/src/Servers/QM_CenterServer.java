@@ -5,6 +5,7 @@ import Utils.Configuration;
 import Utils.Configuration.Server_ID;
 import org.omg.CORBA.ORB;
 
+import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.DatagramPacket;
@@ -65,56 +66,24 @@ public class QM_CenterServer extends DCMSPOA {
     }
 
     public String createTRecord(String managerID, String firstName, String lastName, String address, String phone, String specialization, String location) {
-        /**
-         * Generate the recordID for the new records
-         * Lock the recordID variable to prevent multiple threads
-         * from creating new records with the same recordID
-         */
         String newRecordID;
         synchronized (lockID) {
             newRecordID = String.format(Configuration.TEACHER_RECORD_FORMAT, recordID);
             recordID += 3;
         }
-
-        // Create new record
         TeacherRecord newRecord = new TeacherRecord(newRecordID, firstName, lastName, address, phone, specialization, location);
-
-        /**
-         * Lock the corresponding ArrayList to the LastName's initial character
-         * Multiple threads can modify the same ArrayList safely
-         * Prevent unpredictable behaviors of ArrayList
-         * Ensure recordCount is always true
-         * Ensure server logs are updated and reflect server's activities correctly
-         */
         insertRecord(newRecord);
-
         return newRecordID;
     }
 
     public String createSRecord(String managerID, String firstName, String lastName, String coursesRegistered, String status) {
-        /**
-         * Generate the recordID for the new records
-         * Lock the recordID variable to prevent multiple threads
-         * from creating new records with the same recordID
-         */
         String newRecordID;
         synchronized (lockID) {
             newRecordID = String.format(Configuration.STUDENT_RECORD_FORMAT, recordID);
             recordID += 3;
         }
-
-        // Create new record
         StudentRecord newRecord = new StudentRecord(newRecordID, firstName, lastName, coursesRegistered, status, new SimpleDateFormat(Configuration.DATE_TIME_FORMAT).format(new Date()));
-
-        /**
-         * Lock the corresponding ArrayList to the LastName's initial character
-         * Multiple threads can modify the same ArrayList safely
-         * Prevent unpredictable behaviors of ArrayList
-         * Ensure recordCount is always true
-         * Ensure server logs are updated and reflect server's activities correctly
-         */
         insertRecord(newRecord);
-
         return newRecordID;
     }
 

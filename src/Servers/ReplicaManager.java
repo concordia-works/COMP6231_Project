@@ -12,6 +12,7 @@ import org.omg.CosNaming.NamingContextExtHelper;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
 
+import java.io.*;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -41,6 +42,9 @@ public class ReplicaManager implements Runnable {
     private HeartBeat heartBeat;
     private Map<String, Map<Integer, Integer>> frontEndPortsMap; // to know the port that FrontEnd is using to wait for a response
     private final Object frontEndPortsLock = new Object();
+    private FileWriter fileWriter;
+    private final Object fileWriterLock = new Object();
+    private String fileName;
 
     public ReplicaManager(Config.ARCHITECTURE.REPLICAS replicaManagerID) {
         try {
@@ -77,6 +81,9 @@ public class ReplicaManager implements Runnable {
                     break;
             }
 
+            fileWriter = new FileWriter(replicaManagerID.name() + ".txt", true);
+            fileName = replicaManagerID.name() + ".txt";
+
             new Thread(() -> listenNewLeader()).start();
 
             new Thread(this.heartBeat).start();
@@ -102,11 +109,6 @@ public class ReplicaManager implements Runnable {
                 // Do nothing
                 break;
         }
-    }
-
-    // Getters & Setters
-    public Config.ARCHITECTURE.REPLICAS getReplicaManagerID() {
-        return replicaManagerID;
     }
 
     //Helper functions
@@ -167,6 +169,7 @@ public class ReplicaManager implements Runnable {
 //            System.out.println(String.format(Config.LOGGING.SERVER_START, Config.ARCHITECTURE.REPLICAS.MINH.name(), Config.ARCHITECTURE.SERVER_ID.QM_DDO.name()));
 
             startListening();
+            restoreHashMap();
             orb.run();
         } catch (Exception e) {
             e.printStackTrace(System.err);
@@ -223,6 +226,7 @@ public class ReplicaManager implements Runnable {
 //            System.out.println(String.format(Config.LOGGING.SERVER_START, Config.ARCHITECTURE.REPLICAS.KAMAL.name(), Config.ARCHITECTURE.SERVER_ID.QM_DDO.name()));
 
             startListening();
+            restoreHashMap();
             orb.run();
         } catch (Exception e) {
             e.printStackTrace(System.err);
@@ -297,6 +301,7 @@ public class ReplicaManager implements Runnable {
 //            System.out.println(String.format(Config.LOGGING.SERVER_START, Config.ARCHITECTURE.REPLICAS.KEN_RO.name(), Config.ARCHITECTURE.SERVER_ID.QM_DDO.name()));
 
             startListening();
+            restoreHashMap();
             orb.run();
         } catch (Exception e) {
             e.printStackTrace(System.err);
@@ -321,6 +326,7 @@ public class ReplicaManager implements Runnable {
                 new Thread(() -> {
                     // Rebuild the request object
                     Request request = Config.deserializeRequest(requestPacket.getData());
+
                     System.out.println(replicaManagerID.name() + ": receives " + request.getSequenceNumber() + " " + request.getFullInvocation() + " from FrontEnd");
 
                     synchronized (frontEndPortsLock) {
@@ -347,6 +353,9 @@ public class ReplicaManager implements Runnable {
                                 // Handle the request
                                 response = executeRequest(currentRequest);
                                 System.out.println(replicaManagerID.name() + ": executes " + request.getSequenceNumber() + " " + request.getFullInvocation());
+
+                                // Write the request to the file
+                                writeRequestToFile(currentRequest);
 //                            /**
 //                             * Only broadcast requests if the leader executes the request successfully
 //                             * If the leader succeeds, the response to client will be successful
@@ -591,6 +600,9 @@ public class ReplicaManager implements Runnable {
                                 executeRequest(currentRequest);
                                 System.out.println(replicaManagerID.name() + ": executes " + request.getSequenceNumber() + " " + request.getFullInvocation());
 
+                                // Write the request to the file
+                                writeRequestToFile(request);
+
                                 // If the next request on hold doesn't have the expected sequence number, the loop will end
                                 if (fifo.peekFirstRequestHoldNumber(managerID) != fifo.getExpectedRequestNumber(managerID))
                                     break;
@@ -699,7 +711,7 @@ public class ReplicaManager implements Runnable {
             try {
                 synchronized (acknowledgeLock) {
                     int noOfAck = acknowledgementMap.getOrDefault(sequenceNumber, 0);
-                    System.out.println(sequenceNumber + " has " + noOfAck + " acks, waiting for " + (noOfAliveRM - 1) + " acks");
+//                    System.out.println(sequenceNumber + " has " + noOfAck + " acks, waiting for " + (noOfAliveRM - 1) + " acks");
                     if (noOfAck >= (noOfAliveRM - 1)) {
                         acknowledgementMap.remove(sequenceNumber);
                         break;
@@ -748,5 +760,79 @@ public class ReplicaManager implements Runnable {
 
         // If this is backup, listen to Leader
         new Thread(() -> listenToLeader()).start();
+    }
+
+    private void writeRequestToFile(Request request) {
+        synchronized (fileWriterLock) {
+            BufferedWriter bw = null;
+            FileWriter fw = null;
+            try {
+                File file = new File(fileName);
+                if (!file.exists()) {
+                    file.createNewFile();
+                }
+                fw = new FileWriter(file.getAbsoluteFile(), true);
+                bw = new BufferedWriter(fw);
+                bw.write(request.toString() + System.lineSeparator());
+            } catch (IOException e) {
+                e.printStackTrace(System.err);
+            } finally {
+                try {
+                    if (bw != null)
+                        bw.close();
+                    if (fw != null)
+                        fw.close();
+                } catch (IOException ex) {
+                    ex.printStackTrace(System.err);
+                }
+            }
+        }
+    }
+
+    private void restoreHashMap() {
+        synchronized (fileWriterLock) {
+            try {
+                File file = new File(fileName);
+                if (file.exists()) {
+                    FileReader fileReader = new FileReader(file);
+                    BufferedReader bufferedReader = new BufferedReader(fileReader);
+                    StringBuffer stringBuffer = new StringBuffer();
+                    String line;
+                    while ((line = bufferedReader.readLine()) != null) {
+//                        System.out.println(line);
+                        String[] requestParts = line.split("\\(");
+                        requestParts[1] = requestParts[1].replace(')', Character.MIN_VALUE).trim();
+                        Config.REQUEST.METHODS_NAME methodsName = Config.REQUEST.METHODS_NAME.valueOf(requestParts[0]);
+
+                        Request request = null;
+                        String[] arguments = requestParts[1].split(", ");
+                        switch (methodsName) {
+                            case createTRecord:
+                                request = new Request(-1, arguments[0], Config.REQUEST.METHODS_NAME.createTRecord, arguments[1], arguments[2], arguments[3], arguments[4], arguments[5], arguments[6]);
+                                break;
+                            case createSRecord:
+                                request = new Request(-1, arguments[0], Config.REQUEST.METHODS_NAME.createSRecord, arguments[1], arguments[2], arguments[3], arguments[4]);
+                                break;
+                            case editRecord:
+                                request = new Request(-1, arguments[0], Config.REQUEST.METHODS_NAME.editRecord, arguments[1], arguments[2], arguments[3]);
+                                break;
+                            case transferRecord:
+                                request = new Request(-1, arguments[0], Config.REQUEST.METHODS_NAME.transferRecord, arguments[1], arguments[2]);
+                                break;
+                            default:
+                                // Do nothing
+                                break;
+                        }
+//                        System.out.println(request.getFullInvocation());
+                        System.out.println(replicaManagerID + " restores request " + request.getFullInvocation());
+                        executeRequest(request);
+                    }
+                    fileReader.close();
+                    System.out.println(replicaManagerID + " finish restoring Database");
+                }
+            } catch (IOException e) {
+                e.printStackTrace(System.err);
+            }
+        }
     }
 }

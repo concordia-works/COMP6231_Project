@@ -152,12 +152,22 @@ public class HeartBeat implements Runnable {
                             synchronized (replicaManagerStatusLock) {
                                 replicaManagerStatus.put(replicaID, false);
                             }
+
+                            // Restart the crashed replica
+//                            new Thread(() -> {
+//                                ReplicaManager replicaManager = new ReplicaManager(replicaID);
+//                                new Thread(replicaManager).start();
+//                            }).start();
+
                             // Start new election if leader is failed
-                            if (replicaID.equals(leaderID)) {
-                                System.out.println(replicaManagerID + ": starts new election");
-                                election.startElection(replicasStatus);
-                                election.announceNewLeader();
-                            }
+                            new Thread(() -> {
+                                if (replicaID.equals(leaderID)) {
+                                    System.out.println(replicaManagerID + ": starts new election");
+                                    election.startElection(replicasStatus);
+                                    election.announceNewLeader();
+                                }
+                            }).start();
+
                         }
                     }
                 }

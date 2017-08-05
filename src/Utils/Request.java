@@ -1,7 +1,5 @@
 package Utils;
 
-import Utils.Config;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
@@ -159,5 +157,10 @@ public class Request implements Serializable {
         ObjectOutputStream os = new ObjectOutputStream(out);
         os.writeObject(this);
         return out.toByteArray();
+    }
+
+    @Override
+    public String toString() {
+        return fullInvocation;
     }
 }
