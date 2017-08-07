@@ -62,8 +62,8 @@ public class Config {
         public static final String RESPONSE = "Election response";
         public static final String ANNOUNCEMENT = "%s,%s";
         public static final int ANSWER_TIMEOUT = 500;
-        public static final int ELECTION_DELAY = 0;
-        public static final int ELECTION_TIMEOUT = 200;
+        public static final int ELECTION_DELAY = 500;
+        public static final int ELECTION_TIMEOUT = 500;
     }
 
     public static class HEARTBEAT {

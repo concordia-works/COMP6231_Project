@@ -37,7 +37,9 @@ public class ReplicaManager implements Runnable {
     private FIFO fifo;
     private final Object fifoLock = new Object();
     private Config.ARCHITECTURE.REPLICAS leaderID;
-    private Map<Integer, Integer> acknowledgementMap;
+    // Add managerID to the HashMap
+    private Map<String, Map<Integer, Integer>> acknowledgementMap;
+//    private Map<Integer, Integer> acknowledgementMap;
     private final Object acknowledgeLock = new Object();
     private HeartBeat heartBeat;
     private Map<String, Map<Integer, Integer>> frontEndPortsMap; // to know the port that FrontEnd is using to wait for a response
@@ -49,36 +51,17 @@ public class ReplicaManager implements Runnable {
         try {
             prepareORB();
             this.replicaManagerID = replicaManagerID;
-            this.acknowledgementMap = Collections.synchronizedMap(new HashMap<Integer, Integer>());
+            this.acknowledgementMap = Collections.synchronizedMap(new HashMap<>());
             this.frontEndPortsMap = Collections.synchronizedMap(new HashMap<>());
             this.fifo = new FIFO();
 
-            switch (replicaManagerID) {
-                case KEN_RO:
-                    this.fromFrontEndPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getCoefficient() * Config.UDP.PORT_FRONT_END_TO_LEADER;
-                    this.fromLeaderPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getCoefficient() * Config.UDP.PORT_LEADER_TO_BACKUPS;
-                    this.fromBackupPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getCoefficient() * Config.UDP.PORT_BACKUPS_TO_LEADER;
-                    this.heartBeatPort = Config.ARCHITECTURE.REPLICAS.KEN_RO.getCoefficient() * Config.UDP.PORT_HEART_BEAT;
-                    this.heartBeat = new HeartBeat(Config.ARCHITECTURE.REPLICAS.KEN_RO, this.heartBeatPort);
-                    break;
-                case KAMAL:
-                    this.fromFrontEndPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getCoefficient() * Config.UDP.PORT_FRONT_END_TO_LEADER;
-                    this.fromLeaderPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getCoefficient() * Config.UDP.PORT_LEADER_TO_BACKUPS;
-                    this.fromBackupPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getCoefficient() * Config.UDP.PORT_BACKUPS_TO_LEADER;
-                    this.heartBeatPort = Config.ARCHITECTURE.REPLICAS.KAMAL.getCoefficient() * Config.UDP.PORT_HEART_BEAT;
-                    this.heartBeat = new HeartBeat(Config.ARCHITECTURE.REPLICAS.KAMAL, this.heartBeatPort);
-                    break;
-                case MINH:
-                    this.fromFrontEndPort = Config.ARCHITECTURE.REPLICAS.MINH.getCoefficient() * Config.UDP.PORT_FRONT_END_TO_LEADER;
-                    this.fromLeaderPort = Config.ARCHITECTURE.REPLICAS.MINH.getCoefficient() * Config.UDP.PORT_LEADER_TO_BACKUPS;
-                    this.fromBackupPort = Config.ARCHITECTURE.REPLICAS.MINH.getCoefficient() * Config.UDP.PORT_BACKUPS_TO_LEADER;
-                    this.heartBeatPort = Config.ARCHITECTURE.REPLICAS.MINH.getCoefficient() * Config.UDP.PORT_HEART_BEAT;
-                    this.heartBeat = new HeartBeat(Config.ARCHITECTURE.REPLICAS.MINH, this.heartBeatPort);
-                    break;
-                default:
-                    // Do nothing
-                    break;
-            }
+            this.fromFrontEndPort = replicaManagerID.getCoefficient() * Config.UDP.PORT_FRONT_END_TO_LEADER;
+            this.fromLeaderPort = replicaManagerID.getCoefficient() * Config.UDP.PORT_LEADER_TO_BACKUPS;
+            this.fromBackupPort = replicaManagerID.getCoefficient() * Config.UDP.PORT_BACKUPS_TO_LEADER;
+            this.heartBeatPort = replicaManagerID.getCoefficient() * Config.UDP.PORT_HEART_BEAT;
+
+            // Start listening to election messages here
+            this.heartBeat = new HeartBeat(replicaManagerID, this.heartBeatPort);
 
             fileName = replicaManagerID.name() + ".txt";
 
@@ -143,9 +126,9 @@ public class ReplicaManager implements Runnable {
             NameComponent path[] = namingContextRef.to_name(Configuration.Server_ID.QM_MTL.name());
             namingContextRef.rebind(path, mtlDcmsServer);
             path = namingContextRef.to_name(Configuration.Server_ID.QM_LVL.name());
-            namingContextRef.rebind(path, mtlDcmsServer);
+            namingContextRef.rebind(path, lvlDcmsServer);
             path = namingContextRef.to_name(Configuration.Server_ID.QM_DDO.name());
-            namingContextRef.rebind(path, mtlDcmsServer);
+            namingContextRef.rebind(path, ddoDcmsServer);
 
             // Run the server
             new Thread(() -> {
@@ -477,6 +460,8 @@ public class ReplicaManager implements Runnable {
                     break;
             }
 
+//            System.out.println("serverName = " + serverName);
+
             DCMS dcmsServer = DCMSHelper.narrow(namingContextRef.resolve_str(serverName));
             String result = "";
             boolean isSuccess = false;
@@ -644,7 +629,7 @@ public class ReplicaManager implements Runnable {
         try {
             int leaderPort = leaderID.getCoefficient() * Config.UDP.PORT_BACKUPS_TO_LEADER;
             unicast = new Unicast(leaderPort);
-            unicast.send(String.valueOf(request.getSequenceNumber()).getBytes());
+            unicast.send(String.format(Config.ELECTION.ANNOUNCEMENT, request.getManagerID(), request.getSequenceNumber()).getBytes());
         } catch (SocketException e) {
             e.printStackTrace(System.err);
         } finally {
@@ -663,12 +648,16 @@ public class ReplicaManager implements Runnable {
                 DatagramPacket acknowledgement = new DatagramPacket(buffer, buffer.length);
                 socket.receive(acknowledgement);
                 new Thread(() -> {
-                    int sequenceNumber = Integer.valueOf(new String(acknowledgement.getData()).trim());
+                    String[] ackContent = new String(acknowledgement.getData()).trim().split(",");
+                    String managerID = ackContent[0];
+                    int sequenceNumber = Integer.valueOf(ackContent[1]);
 //                    System.out.println(this.replicaManagerID.name() + " received an ack of " + sequenceNumber);
                     synchronized (acknowledgeLock) {
-                        int noOfAck = acknowledgementMap.getOrDefault(sequenceNumber, 0);
-                        acknowledgementMap.put(sequenceNumber, ++noOfAck);
-//                        System.out.println(sequenceNumber + " now has " + noOfAck + " acks");
+                        Map<Integer, Integer> acknowledgementManagerID = acknowledgementMap.getOrDefault(managerID, new HashMap<>());
+                        int noOfAck = acknowledgementManagerID.getOrDefault(sequenceNumber, 0);
+                        acknowledgementManagerID.put(sequenceNumber, ++noOfAck);
+                        acknowledgementMap.put(managerID, acknowledgementManagerID);
+                        System.out.println(sequenceNumber + " now has " + noOfAck + " acks");
                     }
                 }).start();
             }
@@ -704,14 +693,16 @@ public class ReplicaManager implements Runnable {
     }
 
     private void waitForEnoughAcknowledgement(Request request) {
+        String managerID = request.getManagerID();
         int sequenceNumber = request.getSequenceNumber();
         while (true) {
             try {
                 synchronized (acknowledgeLock) {
-                    int noOfAck = acknowledgementMap.getOrDefault(sequenceNumber, 0);
+                    Map<Integer, Integer> acknowledgementManagerID = acknowledgementMap.getOrDefault(managerID, new HashMap<>());
+                    int noOfAck = acknowledgementManagerID.getOrDefault(sequenceNumber, 0);
 //                    System.out.println(sequenceNumber + " has " + noOfAck + " acks, waiting for " + (noOfAliveRM - 1) + " acks");
                     if (noOfAck >= (noOfAliveRM - 1)) {
-                        acknowledgementMap.remove(sequenceNumber);
+                        acknowledgementManagerID.remove(sequenceNumber);
                         break;
                     }
 
@@ -794,7 +785,6 @@ public class ReplicaManager implements Runnable {
                 if (file.exists()) {
                     FileReader fileReader = new FileReader(file);
                     BufferedReader bufferedReader = new BufferedReader(fileReader);
-                    StringBuffer stringBuffer = new StringBuffer();
                     String line;
                     while ((line = bufferedReader.readLine()) != null) {
 //                        System.out.println(line);

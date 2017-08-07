@@ -112,9 +112,6 @@ public class ManagerClient {
                     managerID = sc.nextLine().toUpperCase();
                     client = new ManagerClient(managerID);
                     client.initiateLogger();
-
-                    // Pass the NameComponent to the NamingService to get the object, then narrow it to proper type
-                    frontEnd = FEHelper.narrow(namingContextRef.resolve_str(Config.CORBA.FRONT_END_NAME));
                     System.out.println(managerID + " connect to Front-End successfully");
                     break;
                 default:

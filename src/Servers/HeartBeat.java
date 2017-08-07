@@ -31,6 +31,7 @@ public class HeartBeat implements Runnable {
     public HeartBeat(Config.ARCHITECTURE.REPLICAS replicaManagerID, int heartbeatPort) throws SocketException {
         this.replicaManagerID = replicaManagerID;
         this.heartbeatPort = heartbeatPort;
+        // Start listening to election messages
         this.election = new Election(this.replicaManagerID);
 
         replicasStatus = new boolean[Config.ARCHITECTURE.REPLICAS.values().length];
@@ -160,14 +161,13 @@ public class HeartBeat implements Runnable {
 //                            }).start();
 
                             // Start new election if leader is failed
-                            new Thread(() -> {
-                                if (replicaID.equals(leaderID)) {
+                            if (replicaID.equals(leaderID)) {
+                                new Thread(() -> {
                                     System.out.println(replicaManagerID + ": starts new election");
                                     election.startElection(replicasStatus);
                                     election.announceNewLeader();
-                                }
-                            }).start();
-
+                                }).start();
+                            }
                         }
                     }
                 }

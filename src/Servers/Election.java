@@ -20,7 +20,6 @@ class Election {
 
         new Thread(() -> {
             listenToElectionMessage();
-            return;
         }).start();
     }
 
